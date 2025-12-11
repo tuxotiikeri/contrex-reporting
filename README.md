@@ -21,6 +21,7 @@ npm run dev
 New deployments are automatically made every time the main branch is updated. The deployment happens using GitHub pages and the GitHub workflow script will run the deployment every time changes are detected.
 
 If this repository is closed or changes location you will have to enable GitHub pages from the repository settings. When GitHub pages deployment was successful you will see a green check mark under `deployments` in the sidebar.
+
 <img width="441" height="197" alt="image" src="https://github.com/user-attachments/assets/23f5b207-0436-4091-8e85-f5a1d28621e5" />
 
 
