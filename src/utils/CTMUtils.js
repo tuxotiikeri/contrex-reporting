@@ -1,6 +1,8 @@
 import { asserts } from "../collections/collections";
 import { arrayUtils, numberUtils, stringUtils } from "./utils";
 
+// README.MD will contain more specific information what split and point collections mean
+
 const ctmTextToRawObject = (text) => {
   const sections = text.split(/\[(.*)\]/g);
   const rawObject = {};
@@ -26,6 +28,8 @@ const cleanMemo = (memoText) => {
     .join(" ");
 };
 
+// Generic parser to turn number like strings to numbers and destructure arrays with one value
+// Known issue is that an empty array will just stay as empty array and will not be turned into null
 const createParsedSectionFromRawObjectSection = (rawObjectSection) => {
   let formattedObject = {};
 
@@ -43,6 +47,7 @@ const createParsedSectionFromRawObjectSection = (rawObjectSection) => {
   return formattedObject;
 };
 
+// Create a generic split collection for points that don't need any special math
 const createSplitCollection = (
   markersByIndex,
   points,
@@ -134,6 +139,8 @@ const createMovingAverage = (size, initialValue = 0) => {
   };
 };
 
+// Good angle splits means splits that contain linear angle values
+// So this will cut out everything where the angle value is not constant (changes direction or at the peak were angle starts to slope)
 const createGoodAnglesSplitCollection = (
   markersByIndex,
   anglePoints,
@@ -256,6 +263,8 @@ const createFilteredTorquePointCollection = (goodAngleSplits, torquePoints) => {
   };
 };
 
+// Because split and point collections are so dependent on each other it's just easier to create them inside one function call
+// This function returns all split and point collections the application uses
 const createCollections = (
   markersByIndex,
   data,
@@ -291,11 +300,6 @@ const createCollections = (
     dataFiltering,
     disabledList,
   );
-  // if (dataFiltering) {
-  //   goodAnglesSplitCollection.splits = torqueSplitCollection.splits;
-  //   goodAnglesSplitCollection.endIndex = torqueSplitCollection.endIndex;
-  //   goodAnglesSplitCollection.startIndex = torqueSplitCollection.startIndex;
-  // }
   const dynamicAngleSplitCollection = dataFiltering
     ? torqueSplitCollection
     : goodAnglesSplitCollection;
@@ -305,14 +309,14 @@ const createCollections = (
       dynamicAngleSplitCollection.splits,
       anglePointCollection.points,
     );
-  const [averagePowerFlexCollection, errorFlex] = createAveragePointCollection2(
+  const [averagePowerFlexCollection, errorFlex] = createAveragePointCollection(
     "blue",
     torquePoints,
     unifiedAngleSplitsCollection.splits,
     dataFiltering,
     0.8,
   );
-  const [averagePowerExtCollection, errorExt] = createAveragePointCollection2(
+  const [averagePowerExtCollection, errorExt] = createAveragePointCollection(
     "red",
     torquePoints,
     unifiedAngleSplitsCollection.splits,
@@ -815,6 +819,7 @@ const createAnalysis = (repetitions, weight) => {
   };
 };
 
+// Create generic point collection object
 const createPointCollection = (markersByIndex, points) => {
   const pointCollection = { points };
 
@@ -837,7 +842,7 @@ const createPointCollection = (markersByIndex, points) => {
 };
 
 
-const createAveragePointCollection2 = (
+const createAveragePointCollection = (
   color,
   torquePoints,
   splits,
@@ -1067,8 +1072,9 @@ const createSmallestAngleSampleSizePointCollection = (splits, anglePoints) => {
 };
 
 
-
-
+// Mostly just use the same program type that CMT files contain, but we will try to shorten the name if possible
+// kons/kons 60/60 becomes -> kons 60
+// So if the type or speed repeat we will just remove the duplicated value
 const createProgramType = (configuration) => {
   let programType = "";
   if (configuration.program[1].startsWith("isokin. ballistinen")) {
@@ -1092,6 +1098,7 @@ const createProgramType = (configuration) => {
   return programType;
 };
 
+// This is the main parse function that will create the full CTM parsed object
 const formatRawCTMObject = (rawObject, dataFiltering, disabledList) => {
   const object = {};
 
@@ -1111,8 +1118,6 @@ const formatRawCTMObject = (rawObject, dataFiltering, disabledList) => {
   );
   object.pointCollections = collections.points;
   object.splitCollections = collections.splits;
-  // object.pointCollections = createPointCollections(object.markersByIndex, object.data, dataFiltering, disabledList);
-  // object.splitCollections = createSplitCollections(object.markersByIndex, object.pointCollections, dataFiltering, disabledList);
   object.setUp = createParsedSectionFromRawObjectSection(rawObject.SetUp);
 
   object.memo = cleanMemo(rawObject.memo.join("\n"));
