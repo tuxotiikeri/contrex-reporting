@@ -27,27 +27,25 @@ If this repository is closed or changes location you will have to enable GitHub 
 ## Code structure
 
 All CTM file parsing helper functions are inside CTMUtils.js file. The output parsed file will mostly just follow the same structure the CTM file was already in, but there are a couple of additions.
-`pointCollections`: This is a simple array that will usually hold a list of numbers. Most point arrays are always single dimensional, but error bands will be two dimensional lists.
-Point collections will always contain the points and then maxValue and minValues.
-`splitCollections`: These objects are used to index the `pointCollections`. For example we have one `pointCollection` for torque data, but then the splitCollection, will contain 6 repetitions for this data. Split will always contain `startIndex`, `endIndex` and `splits`. They can also have data for the color or disabled state of the repetitions. The idea is that `pointCollections` will always be just point and all extra metadata will be inside `splitCollection`
-`color`: None of the repetitions will tell you if the action is `Flex` or `Extension`. This information can be parsed using the `color` attribute. `red` is always an extension and `blue` is always flex.
+1. `pointCollections`: This is a simple array that will usually hold a list of numbers. Most point arrays are always single dimensional, but error bands will be two dimensional lists.
+    - Point collections will always contain the points and then maxValue and minValues.
+2. `splitCollections`: These objects are used to index the `pointCollections`. For example we have one `pointCollection` for torque data, but then the splitCollection, will contain 6 repetitions for this data. Split will always contain `startIndex`, `endIndex` and `splits`. They can also have data for the color or disabled state of the repetitions. The idea is that `pointCollections` will always be just point and all extra metadata will be inside `splitCollection`
+3. `color`: None of the repetitions will tell you if the action is `Flex` or `Extension`. This information can be parsed using the `color` attribute. `red` is always an extension and `blue` is always flex.
 
 The files are loaded & parsed via web-workers/threads (./src/workers/). The idea is that all intensive calculations that can be done on other threads are done inside other threads.
-`filterFilesFromActiveFolders`:  Loads files with type .ctm/.cxp from selected folders, reads some metadata for usage in fileBrowser. Loading & converting files done in batches to reduce load. 
-Currently loads around 1000 files/s. Larger batch sizes may load more files/s, but with greatly increased resource cost.
+1. `filterFilesFromActiveFolders`:  Loads files with type .ctm/.cxp from selected folders, reads some metadata for usage in fileBrowser. Loading & converting files done in batches to reduce load. <br/>Currently loads around 1000 files/s. Larger batch sizes may load more files/s, but with greatly increased resource cost.
+2. `parseSelectedFiles`: Handles converting files to objects for use in graph displays, barcharts & .PDF generation
 
-`parseSelectedFiles`: Handles converting files to objects for use in graph displays, barcharts & .PDF generation
 All used global signals are exported from a single main ./src/signals.js file to increase readability of the code.
 Code testing (WIP) implemented via assert statements, executed when code is run. The idea is that if you ever trigger an assertion you should know that something is wrong. `GenericSVGChar.js` also uses asserts to aggressively crash components that are initialized with wrong or missing props.
 
-
 ## Future improvement ideas
 
-Deployment in Metropolia cloud
-Language selector
-Gravity filter
-Bar charts to pdf
-Increase testing coverage
+- Deployment in Metropolia cloud
+- Language selector
+- Gravity filter
+- Bar charts to pdf
+- Increase testing coverage
 
 ## More
 
