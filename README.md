@@ -26,53 +26,35 @@ If this repository is closed or changes location you will have to enable GitHub 
 
 <img width="441" height="197" alt="image" src="public/images/github-pages.png" />
 
-
 If the deployment was not successful here are some possible tips to fix the deployment.
 
 1. Make sure GitHub Pages is activated in settings
-
-* Open settings > Pages > Build and deployment
-
-  * Check that `source` is set to `GitHub Actions`
-  * If this option is missing read ahead
-
+    * Open settings > Pages > Build and deployment
+      * Check that `source` is set to `GitHub Actions`
+      * If this option is missing read ahead
 2. GitHub Actions settings are missing
-
-* This is most likely caused because the repository is located inside a GitHub account that is not a pro user and the repository is private
-
-  * There are two fixes here. First is to just buy GitHub Pro or get a free Metropolia license.
-  * Second option is changing the repository visibility to `public`
-
-    * The current code does not contain any patient/military secrets that should be hidden, and if it did, the code should not be hosted inside GitHub
-    * Change the repository visibility by going to `settings` > `general` > `Danger Zone` > `Change repository visibility` > `public`
-
+    * This is most likely caused because the repository is located inside a GitHub account that is not a pro user and the repository is private
+      * There are two fixes here. First is to just buy GitHub Pro or get a free Metropolia license.
+      * Second option is changing the repository visibility to `public`
+        * The current code does not contain any patient/military secrets that should be hidden, and if it did, the code should not be hosted inside GitHub
+        * Change the repository visibility by going to `settings` > `general` > `Danger Zone` > `Change repository visibility` > `public`
 3. GitHub Pages are enabled but the deployment needs to be rerun
-
-* When you are inside the repository's main page click `Deployments` from the right side (See the above image for reference)
-
-  * Here you should see a list of failed GitHub Actions. Click the dots and `View log`
-  * It should then move to a page that contains a green button that reads something like `Re-run job`
-  * Click this and pray that the next run will be successful
-
-    * If the next run fails, the logs should contain more information about the reason why the deployment failed
-
+    * When you are inside the repository's main page click `Deployments` from the right side (See the above image for reference)
+      * Here you should see a list of failed GitHub Actions. Click the dots and `View log`
+      * It should then move to a page that contains a green button that reads something like `Re-run job`
+      * Click this and pray that the next run will be successful
+        * If the next run fails, the logs should contain more information about the reason why the deployment failed
 4. Deployment is green, but how do I find the website
-
-* GitHub deployments should always generate the URL in a format like this: `https://{user-name}.github.io/{repository-name}/`
-* You can manually type this or find the link inside the same `Deployments` page on step 3.
-
+    * GitHub deployments should always generate the URL in a format like this: `https://{user-name}.github.io/{repository-name}/`
+    * You can manually type this or find the link inside the same `Deployments` page on step 3.
 5. The deployed page is empty
-
-* This has most likely happened if your repository name is no longer `isokineettinen-lihasvoimamittaus-2025`
-* To fix this you will have to change one code file and commit the changes to main
-
-  * Open `vite.config.js` file from the project root
-  * Find the line `base: "/isokineettinen-lihasvoimamittaus-2025"`
-  * Change this one line to contain the new repository name.
-
-    * After this you will have to commit your changes and push them to main
-    * This should automatically re-run the deployment and update the generated file path to match the current repository name (this may take a couple of minutes)
-
+    * This has most likely happened if your repository name is no longer `isokineettinen-lihasvoimamittaus-2025`
+    * To fix this you will have to change one code file and commit the changes to main
+      * Open `vite.config.js` file from the project root
+      * Find the line `base: "/isokineettinen-lihasvoimamittaus-2025"`
+      * Change this one line to contain the new repository name.
+        * After this you will have to commit your changes and push them to main
+        * This should automatically re-run the deployment and update the generated file path to match the current repository name (this may take a couple of minutes)
 6. Congratulations you have either fixed the deployment or have found a bug I have not encountered and documented. If you fall into the latter category godspeed my friend.
 
 ## Code structure
