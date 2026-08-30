@@ -1,6 +1,7 @@
 import { For, Show, createMemo } from "solid-js";
-import { patientProfile } from "../signals.js";
+import { parsedFileData, patientProfile } from "../signals.js";
 import { referenceValues } from "../data/referenceValues.js";
+import { resolveComparisonSides } from "../utils/comparisonSides.js";
 
 const testKeyForProgram = (programType) => {
   const program = String(programType ?? "").toLowerCase();
@@ -40,14 +41,14 @@ export function MetricsSummary(props) {
     const referenceSet = referenceValues[patientProfile().referenceValues];
     const testKey = testKeyForProgram(props.programType);
     const testReferences = referenceSet?.metrics?.[testKey];
-    const involvedSide = patientProfile().involvedSide;
+    const involvedSide = resolveComparisonSides(patientProfile().involvedSide, parsedFileData()).involvedSide;
 
     const rows = metrics.flatMap((metric) => [
       { ...metric, direction: "ojennus", right: Math.abs(right?.[metric.ext]), left: Math.abs(left?.[metric.ext]), ref: testReferences?.[metric.refExt] },
       { ...metric, direction: "koukistus", right: Math.abs(right?.[metric.flex]), left: Math.abs(left?.[metric.flex]), ref: testReferences?.[metric.refFlex] },
     ]).map((row) => {
-      const involved = involvedSide === "vasen" ? row.left : involvedSide === "oikea" ? row.right : null;
-      const nonInvolved = involvedSide === "vasen" ? row.right : involvedSide === "oikea" ? row.left : null;
+      const involved = involvedSide === "left" ? row.left : involvedSide === "right" ? row.right : null;
+      const nonInvolved = involvedSide === "left" ? row.right : involvedSide === "right" ? row.left : null;
       const lsi = involved && nonInvolved ? 100 * involved / nonInvolved : null;
       return { ...row, lsi };
     });

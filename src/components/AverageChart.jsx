@@ -12,36 +12,9 @@ import {
 import { arrayUtils } from "../utils/utils.js";
 import { asserts } from "../collections/collections.js";
 import { patientProfile } from "../signals.js";
+import { parsedFileData } from "../signals.js";
+import { resolveComparisonSides } from "../utils/comparisonSides.js";
 
-function ChartLegend(props) {
-  const entries = createMemo(() => {
-    const files = typeof props.files === "function" ? props.files() : (props.files ?? []);
-    const sideCounts = files.reduce((counts, file) => {
-      counts[file.legSide] = (counts[file.legSide] ?? 0) + 1;
-      return counts;
-    }, {});
-    return [
-      ...files.map((file) => {
-        const side = file.legSide === "left" ? "Vasen" : "Oikea";
-        const label = sideCounts[file.legSide] > 1 && file.date ? `${side} (${file.date})` : side;
-        return { color: file.baseColor, label };
-      }),
-      ...(props.includeLSI ? [{ color: "black", label: "Limb Symmetry (%)" }] : []),
-    ];
-  });
-  return (
-    <g font-size="12">
-      <For each={entries()}>
-        {(entry, index) => (
-          <g transform={`translate(${props.x - 170}, ${props.y + index() * 16})`}>
-            <circle cx="4" cy="0" r="4" fill={entry.color} />
-            <text x="12" y="0" dominant-baseline="middle">{entry.label}</text>
-          </g>
-        )}
-      </For>
-    </g>
-  );
-}
 export function AverageChart(props) {
   return (
     <ErrorBoundary fallback="Three chart rendering failed">
@@ -70,12 +43,15 @@ function Chart(props) {
 
   const controls = { mouseX, mouseY };
   const svgArea = { width: svgWidth, height: svgHeight, x: 0, y: 0 };
+  const isEccentric = () => String(props.listOfParsedCTM()?.[0]?.rawObject?.programType ?? "").includes("eks/eks");
   return (
     <Show when={props.listOfParsedCTM()?.length}>
       <div class="flex flex-col gap-10">
-        <AverageErrorChartForTorque title="Ojennuksen keskiarvo" type="Ext" {...props} />
-        <AverageErrorChartForTorque title="Koukistuksen keskiarvo" type="Flex" {...props} />
-        <AngleSpecificHQRatio type="Flex" {...props} />
+        <AverageErrorChartForTorque title="Etureisi - keskiarvo" type={isEccentric() ? "Flex" : "Ext"} {...props} />
+        <AverageErrorChartForTorque title="Takareisi - keskiarvo" type={isEccentric() ? "Ext" : "Flex"} {...props} />
+        <Show when={props.showHQ !== false}>
+          <AngleSpecificHQRatio type="Flex" {...props} />
+        </Show>
       </div>
     </Show>
   );
@@ -92,10 +68,13 @@ function Chart(props) {
 
     const combinedValues = createMemo(() => {
       const files = props.listOfParsedCTM();
-      const type = props.type;
+      const quadricepsIndex = isEccentric() ? 111 : 110;
+      const peakQuadriceps = Math.max(
+        ...files.map((file) => Math.abs(Number(file.rawObject.analysis?.[quadricepsIndex])) || 0),
+      );
       return {
         minValue: 0,
-        maxValue: 500,
+        maxValue: Math.max(100, Math.ceil((peakQuadriceps * 1.2) / 100) * 100),
         xStartValue: 0,
         xEndValue: 90,
       };
@@ -118,13 +97,14 @@ function Chart(props) {
       const length = Math.min(leftPoints.length, rightPoints.length);
       if (!length) return null;
 
-      const involvedSide = patientProfile().involvedSide;
-      if (involvedSide !== "left" && involvedSide !== "right" && involvedSide !== "vasen" && involvedSide !== "oikea") {
+      const comparison = resolveComparisonSides(patientProfile().involvedSide, parsedFileData());
+      const involvedSide = comparison.involvedSide;
+      if (!involvedSide) {
         return null;
       }
       const lsiAt = (index) => {
-        const involved = involvedSide === "vasen" || involvedSide === "left" ? leftPoints[index] : rightPoints[index];
-        const nonInvolved = involvedSide === "vasen" || involvedSide === "left" ? rightPoints[index] : leftPoints[index];
+        const involved = involvedSide === "left" ? leftPoints[index] : rightPoints[index];
+        const nonInvolved = involvedSide === "left" ? rightPoints[index] : leftPoints[index];
         return nonInvolved ? (involved / nonInvolved) * 100 : 0;
       };
       const points = Array.from({ length }, (_, index) =>
@@ -157,6 +137,7 @@ function Chart(props) {
       <svg
         width={svgArea.width}
         height={svgArea.height}
+        style={{"font-family": "Helvetica, Arial, sans-serif"}}
         onMouseLeave={clearHoverCoors}
         onMouseMove={updateHoverCoords}
       >
@@ -171,7 +152,6 @@ function Chart(props) {
           {(borderArea) => (
             <>
               <ChartText position="top" {...borderArea} title={props.title} fontSize="18" fontWeight="700" />
-              <ChartLegend files={props.listOfParsedCTM} x={borderArea.x + borderArea.width} y={borderArea.y + 5} includeLSI />
               <ChartPadding name="lines" {...borderArea} padding={15}>
                 {(lineArea) => (
                   <>
@@ -408,6 +388,7 @@ function Chart(props) {
         <svg
           width={svgArea.width}
           height={svgArea.height}
+          style={{"font-family": "Helvetica, Arial, sans-serif"}}
           onMouseLeave={clearHoverCoors}
           onMouseMove={updateHoverCoords}
         >
@@ -426,7 +407,6 @@ function Chart(props) {
                   {...borderArea}
                   title="Kulmakohtainen HQ-suhde" fontSize="18" fontWeight="700"
                 />
-                <ChartLegend files={props.listOfParsedCTM} x={borderArea.x + borderArea.width} y={borderArea.y + 5} />
                 <ChartPadding name="lines" {...borderArea} padding={15}>
                   {(lineArea) => (
                     <>

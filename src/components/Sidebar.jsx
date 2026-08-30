@@ -62,6 +62,7 @@ export function Sidebar() {
           ? "oikea"
           : "",
       weight: session.subjectWeight ?? "",
+      additionalComment: "",
       referenceValues: "Ei käytössä",
     });
   });
@@ -152,7 +153,7 @@ export function Sidebar() {
             </div>
           </div>
           <div class="flex flex-col gap-3 border border-gray-200 rounded-lg p-4">
-            <p class="text-center font-medium text-gray-700">Koehenkilö ja viitearvot</p>
+            <p class="text-center font-medium text-gray-700">Mitattavan tiedot</p>
             <label class="flex flex-col gap-1 text-sm text-gray-700">
               Sukupuoli
               <select
@@ -186,6 +187,15 @@ export function Sidebar() {
                 min="1"
                 value={patientProfile().weight}
                 onInput={(event) => updatePatientProfile("weight", event.currentTarget.value)}
+              />
+            </label>
+            <label class="flex flex-col gap-1 text-sm text-gray-700">
+              Lisäkommentti
+              <textarea
+                class="border border-gray-300 rounded px-2 py-1 min-h-16"
+                value={patientProfile().additionalComment}
+                onInput={(event) => updatePatientProfile("additionalComment", event.currentTarget.value)}
+                placeholder="Esim. 6 kk leikkauksesta"
               />
             </label>
             <label class="flex flex-col gap-1 text-sm text-gray-700">

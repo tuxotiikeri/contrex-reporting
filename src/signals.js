@@ -32,6 +32,7 @@ export const [patientProfile, setPatientProfile] = createSignal({
   sex: "",
   involvedSide: "",
   weight: "",
+  additionalComment: "",
   referenceValues: "Ei käytössä",
 });
 export const [$hoveredRepetition, storeHoveredRepetition] = createStore({

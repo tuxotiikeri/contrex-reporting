@@ -1,5 +1,6 @@
-import { For, createMemo } from "solid-js";
+import { For, Show, createMemo } from "solid-js";
 import { AverageChart } from "./AverageChart.jsx";
+import { EnduranceWorkCharts } from "./EnduranceWorkCharts.jsx";
 import { parsedFileData } from "../signals";
 import { colors } from "../App.jsx";
 
@@ -47,12 +48,12 @@ export function HiddenCharts() {
               key={group.key}
               data-test-key={PDF_KEYS[group.key] || group.key}
             >
-              <AverageChart
-                listOfParsedCTM={() => group.files}
-                errorBands={false}
-                svgWidth={450}
-                svgHeight={250}
-              />
+              <Show
+                when={group.key === "kons/kons 180/180"}
+                fallback={<AverageChart listOfParsedCTM={() => group.files} errorBands={true} showHQ={false} svgWidth={450} svgHeight={250} />}
+              >
+                <EnduranceWorkCharts listOfParsedCTM={() => group.files} />
+              </Show>
             </div>
           )
         }

@@ -1081,6 +1081,9 @@ const formatRawCTMObject = (
   if (patientProfile?.referenceValues) {
     object.session.referenceValues = patientProfile.referenceValues;
   }
+  if (patientProfile?.additionalComment) {
+    object.session.additionalComment = patientProfile.additionalComment;
+  }
   object.measurement = createParsedSectionFromRawObjectSection(
     rawObject.Measurement,
   );
