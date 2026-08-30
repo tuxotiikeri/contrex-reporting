@@ -1,10 +1,11 @@
 {
-  "name": "isokineettinen-lihasvoimamittaus-2025",
+  "name": "contrex-reporting",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --open",
+    "test": "node --test",
     "build": "vite build",
     "preview": "vite preview"
   },

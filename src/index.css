@@ -37,7 +37,7 @@ html {
 
 .session-table {
   display: grid;
-  grid-template-columns: 4fr repeat(7, 2fr) 1fr;
+  grid-template-columns: 4fr repeat(8, 2fr) 1fr;
   gap: 8px;
   overflow-y: auto;
   min-height: 300px;

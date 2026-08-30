@@ -17,7 +17,7 @@ export function BarChart(props) {
 function Chart(props) {
   asserts.assertTypeString(props.title, "title");
 
-  const svgArea = { width: 275, height: 300, x: 0, y: 0 };
+  const svgArea = { width: 275, height: 320, x: 0, y: 0 };
 
   return (
     <Show when={props.listOfParsedCTM()?.length}>
@@ -30,7 +30,8 @@ function Chart(props) {
       <svg width={svgArea.width} height={svgArea.height}>
         <ChartPadding
           {...svgArea}
-          paddingRight={45}
+          paddingLeft={45}
+          paddingRight={20}
           paddingTop={40}
           paddingBottom={20}
         >
@@ -73,9 +74,16 @@ function Chart(props) {
     const groups = createMemo(() => {
       const ext = [];
       const flex = [];
-      for (const {
-        rawObject: { analysis },
-      } of props.listOfParsedCTM()) {
+      for (const { rawObject } of props.listOfParsedCTM()) {
+        const { analysis } = rawObject;
+        if (props.metric === "hq") {
+          const isEccentric = rawObject.programType?.includes("eks/eks");
+          const quadriceps = Math.abs(analysis[isEccentric ? 113 : 112]);
+          const hamstrings = Math.abs(analysis[isEccentric ? 112 : 113]);
+          const hq = quadriceps ? hamstrings / quadriceps : NaN;
+          if (numberUtils.isNumber(hq)) ext.push(hq);
+          continue;
+        }
         const extValue = Math.abs(analysis[props.analysisExtKey]);
         const flexValue = Math.abs(analysis[props.analysisFlexKey]);
 
@@ -98,26 +106,30 @@ function Chart(props) {
         return [];
       }
 
-      return [ext, flex];
+      return props.metric === "hq" ? [ext] : [ext, flex];
     });
 
-    const maxValue = createMemo(() =>
-      arrayUtils.maxValue(
-        groups().map((values) => arrayUtils.maxValue(values)),
-      ),
+    const maxValue = createMemo(
+      () =>
+        props.maxValue ??
+        arrayUtils.maxValue(
+          groups().map((values) => arrayUtils.maxValue(values)),
+        ),
     );
     const colors = createMemo(() =>
       props.listOfParsedCTM()?.map((ctmData) => ctmData.baseColor),
     );
-    const groupNames = ["Ojennus", "Koukistus"];
+    const groupNames =
+      props.metric === "hq" ? ["HQ-suhde"] : ["Ojennus", "Koukistus"];
 
     return (
       <>
-        <ChartYAxisFloor
+              <ChartYAxisFloor
           {...props}
-          decimals={3}
+          decimals={props.decimals ?? 0}
           startValue={maxValue()}
           endValue={0}
+          tickStep={props.tickStep}
         />
         <ChartPadding {...props} paddingInline={20}>
           {(barArea) => (
@@ -167,6 +179,8 @@ function BarLineGroups(props) {
                 gap={0}
                 values={group}
               />
+              <line x1={props.x} x2={props.x} y1={props.y} y2={props.y + props.height} stroke="black" />
+              <line x1={props.x} x2={props.x + props.width} y1={props.y + props.height} y2={props.y + props.height} stroke="black" />
               <ChartText
                 position="bottom"
                 {...barLineArea}
@@ -210,7 +224,7 @@ function BarChartLine(props) {
               <ChartText
                 position="top"
                 {...barArea}
-                title={numberUtils.padRoundDecimalsToLength(value, 3)}
+                title={props.significantFigures ? Number(value).toPrecision(props.significantFigures) : numberUtils.roundDecimals(value, props.decimals ?? 0)}
               />
               <rect {...barArea} fill={props.colors?.[i()] ?? "grey"}></rect>
             </>

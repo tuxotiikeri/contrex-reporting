@@ -1,10 +1,10 @@
-import {createSignal, createMemo, For, createEffect, on} from "solid-js";
+import {createSignal, createMemo, For, createEffect, on, Show} from "solid-js";
 import {fileUtils} from "../utils/utils.js";
 import {FileBrowser} from "./FileBrowser.jsx";
 import {AverageChart} from "./AverageChart.jsx";
 import {ThreeCharts} from "./ThreeCharts.jsx";
 import {useGlobalContext} from "../providers.js";
-import {BarChart} from "./BarChart.jsx";
+import {MetricsSummary} from "./MetricsSummary.jsx";
 import {Button} from "./ui/Button.jsx";
 import {
   parsedFileData,
@@ -52,53 +52,14 @@ export function FileManager() {
       <FileBrowser/>
       <div class="bg-white rounded-lg flex-1 overflow-auto">
         <div class="w-full h-full space-y-4 grid place-items-center items-start p-8">
-          <AverageChart
-            listOfParsedCTM={activeFiles}
-            errorBands={showErrorBands()}
-          />
-          <div class="grid grid-cols-3 gap-2">
-            <BarChart
-              listOfParsedCTM={activeFiles}
-              title="Maksimivääntö"
-              unit="[Nm]"
-              analysisExtKey="110"
-              analysisFlexKey="111"
-            />
-            <BarChart
-              listOfParsedCTM={activeFiles}
-              title="Maksimivääntö keskiarvo"
-              unit="[Nm]"
-              analysisExtKey="112"
-              analysisFlexKey="113"
-            />
-            <BarChart
-              listOfParsedCTM={activeFiles}
-              title="Maksimivääntö keskiarvo / kg"
-              unit="[Nm/kg]"
-              analysisExtKey="203"
-              analysisFlexKey="204"
-            />
-            <BarChart
-              listOfParsedCTM={activeFiles}
-              title="Ajankeskiarvo huippuväännössä"
-              unit="[s]"
-              analysisExtKey="116"
-              analysisFlexKey="117"
-            />
-            <BarChart
-              listOfParsedCTM={activeFiles}
-              title="Kulmankeskiarvo huippuväännössä"
-              unit="[aste]"
-              analysisExtKey="114"
-              analysisFlexKey="115"
-            />
-            <BarChart
-              listOfParsedCTM={activeFiles}
-              title="Huippuväännön vaihtelu"
-              unit="[Nm]"
-              analysisExtKey="250"
-              analysisFlexKey="251"
-            />
+          <div class="flex w-full flex-wrap items-start justify-center gap-4">
+            <div class="min-w-0">
+              <AverageChart
+                listOfParsedCTM={activeFiles}
+                errorBands={showErrorBands()}
+              />
+            </div>
+            <MetricsSummary listOfParsedCTM={activeFiles} programType={activeProgram()} />
           </div>
           <Show when={activeFiles()[activeFileIndex()]}>
             {(activeFile) => (

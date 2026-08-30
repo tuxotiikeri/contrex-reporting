@@ -15,14 +15,25 @@ export const [foldersThatHaveAccess, setFoldersThatHaveAccess] = createSignal(
 export const [disabledRepetitions, setDisabledRepetitions] = createSignal({});
 export const [filterByLastName, setFilterByLastName] = createSignal("");
 export const [filterByFirstName, setFilterByFirstName] = createSignal("");
+export const [filterBySubjectId, setFilterBySubjectId] = createSignal("");
 export const [firstNameInput, setFirstNameInput] = createSignal("");
 export const [lastNameInput, setLastNameInput] = createSignal("");
+export const [subjectIdInput, setSubjectIdInput] = createSignal("");
 export const [safeMode, setSafeMode] = createSignal(true);
 export const [dataFiltering, setDataFiltering] =
   signals.localStorageBoolean(true);
+export const [gravityCorrection, setGravityCorrection] =
+  signals.localStorageBoolean("gravity-correction", true);
 export const [sessionFilters, storeSessionFilters] = createStore({});
 export const [activeProgram, setActiveProgram] = createSignal(null);
 export const [showErrorBands, setShowErrorBands] = createSignal(true);
+export const [patientProfile, setPatientProfile] = createSignal({
+  sessionKey: null,
+  sex: "",
+  involvedSide: "",
+  weight: "",
+  referenceValues: "Ei käytössä",
+});
 export const [$hoveredRepetition, storeHoveredRepetition] = createStore({
   fileIndex: -1,
   repetitionIndex: -1,

@@ -2,7 +2,13 @@ import { CTMUtils } from "../utils/utils";
 
 // Parse files for graph handling
 onmessage = async (message) => {
-  const { filesToParse, dataFiltering, disabledRepetitions } = message.data;
+  const {
+    filesToParse,
+    dataFiltering,
+    gravityCorrection,
+    disabledRepetitions,
+    patientProfile,
+  } = message.data;
   if (!filesToParse) {
     return;
   }
@@ -18,6 +24,8 @@ onmessage = async (message) => {
         text,
         dataFiltering,
         disabledList,
+        gravityCorrection,
+        patientProfile,
       );
 
       if (rawObject == null) {

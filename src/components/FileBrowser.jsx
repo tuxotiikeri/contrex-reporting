@@ -21,11 +21,15 @@ import {fileUtils, indexedDBUtils} from "../utils/utils";
 import {
   $selectedSessionsCounts,
   dataFiltering,
+  gravityCorrection,
+  patientProfile,
   disabledRepetitions,
   files,
   filterByFirstName,
   filterByLastName,
+  filterBySubjectId,
   firstNameInput,
+  subjectIdInput,
   foldersThatHaveAccess,
   lastNameInput,
   recentFolders,
@@ -36,7 +40,9 @@ import {
   setFiles,
   setFilterByFirstName,
   setFilterByLastName,
+  setFilterBySubjectId,
   setFirstNameInput,
+  setSubjectIdInput,
   setFoldersThatHaveAccess,
   setLastNameInput,
   setParsedFileData,
@@ -105,6 +111,7 @@ export function FileBrowser() {
     const {date, time, foot, speed, program} = sessionFilters;
     const firstName = filterByFirstName();
     const lastName = filterByLastName();
+    const subjectId = filterBySubjectId();
 
     const returnArray = [];
 
@@ -116,6 +123,9 @@ export function FileBrowser() {
           ?.toLowerCase()
           .includes(firstName.toLowerCase())
       ) {
+        return;
+      }
+      if (subjectId && !session.files[0]?.subjectId?.toLowerCase().includes(subjectId)) {
         return;
       }
       if (
@@ -193,7 +203,7 @@ export function FileBrowser() {
       "file-handlers",
       "recent-files",
     );
-    setRecentFolders(files);
+    setRecentFolders(files || []);
   });
 
   // Web Workers
@@ -234,7 +244,9 @@ export function FileBrowser() {
       parseSelectedFilesWorker.postMessage({
         filesToParse: selectedFiles(),
         dataFiltering: dataFiltering(),
+        gravityCorrection: gravityCorrection(),
         disabledRepetitions: disabledRepetitions(),
+        patientProfile: patientProfile(),
       });
 
       parseSelectedFilesWorker.onmessage = async (message) => {
@@ -280,6 +292,7 @@ export function FileBrowser() {
     batch(() => {
       setFilterByFirstName(firstNameInput().trim().toLowerCase());
       setFilterByLastName(lastNameInput().trim().toLowerCase());
+      setFilterBySubjectId(subjectIdInput().trim().toLowerCase());
     });
   };
 
@@ -383,6 +396,7 @@ export function FileBrowser() {
           />
           <Dropdown label="Etunimi" disabled/>
           <Dropdown label="Sukunimi" disabled/>
+          <Dropdown label="ID" disabled/>
           <Dropdown
             label="Jalka"
             options={["vasen", "oikea"]}
@@ -515,6 +529,7 @@ export function FileBrowser() {
                         <p>{ses.files[0]?.subjectFirstName}</p>
                         <p>{ses.files[0]?.subjectLastName}</p>
                       </Show>
+                      <p>{ses.files[0]?.subjectId}</p>
                       <p>-</p>
                       <p>-</p>
                       <p>-</p>
@@ -545,6 +560,7 @@ export function FileBrowser() {
                           <p>{file.time}</p>
                           <p>-</p>
                           <p>-</p>
+                          <p>{file.subjectId}</p>
                           <p>{translateLegSide(file.legSide)}</p>
                           <p>{file.speed}</p>
                           <p>{file.program}</p>
@@ -641,6 +657,13 @@ export function FileBrowser() {
           placeholder="Etunimi"
           value={firstNameInput()}
           onInput={(e) => setFirstNameInput(e.currentTarget.value)}
+          class="p-2 border rounded-lg"
+        />
+        <input
+          type="text"
+          placeholder="Subject ID"
+          value={subjectIdInput()}
+          onInput={(e) => setSubjectIdInput(e.currentTarget.value)}
           class="p-2 border rounded-lg"
         />
         <input

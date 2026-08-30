@@ -108,7 +108,8 @@ function parseCTMForFiltering(text, fileHandler) {
   const date = measurement["date (dd/mm/yyyy)"] || "00.00.0000";
   const subjectFirstName = session["subject name first"] || "-";
   const subjectLastName = session["subject name"] || "-";
-  const sessionKey = date + subjectFirstName + subjectLastName;
+  const subjectId = findSessionValue(session, ["subject id", "subjectid", "id"]) || findSessionValue(measurement, ["subject id", "subjectid", "id"]) || "-";
+  const sessionKey = date + subjectId + subjectFirstName + subjectLastName;
 
   if (!parseCTMForFiltering.sessionMap[sessionKey]) {
     parseCTMForFiltering.sessionCounter += 1;
@@ -127,11 +128,21 @@ function parseCTMForFiltering(text, fileHandler) {
     time: measurement["time (hh/mm/ss)"].split(/\.|:/g, 2).join(":"),
     subjectFirstName,
     subjectLastName,
+    subjectId,
     sessionId,
     legSide: parsedFile.legSide,
     program: parsedFile.program,
     speed: parsedFile.speed,
   };
+}
+
+function findSessionValue(session, acceptedKeys) {
+  const normalizedKeys = new Set(acceptedKeys.map((key) => key.replaceAll(/[^a-z0-9]/gi, "").toLowerCase()));
+  for (const [key, value] of Object.entries(session)) {
+    const normalizedKey = key.replaceAll(/[^a-z0-9]/gi, "").toLowerCase();
+    if (normalizedKeys.has(normalizedKey) && String(value).trim()) return String(value).trim();
+  }
+  return "";
 }
 
 const extractDataFromString = (data, key) => {

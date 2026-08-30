@@ -10,12 +10,16 @@ import {
   storeSelectedSessionsCounts,
   dataFiltering,
   setDataFiltering,
+  gravityCorrection,
+  setGravityCorrection,
   showErrorBands,
   setShowErrorBands,
   activeFileIndex,
   setActiveFileIndex,
   toggleSelectedFile,
   setDisabledRepetitions,
+  patientProfile,
+  setPatientProfile,
 } from "../signals.js";
 import {useGlobalContext} from "../providers.js";
 import {Button} from "./ui/Button.jsx";
@@ -23,11 +27,13 @@ import {ListOfFileHandlerRepetitions} from "./ListOfFileHandlerRepetitions.jsx";
 import {reconcile} from "solid-js/store";
 import {IconButton} from "./ui/IconButton.jsx";
 import {Checkbox} from "./ui/Checkbox.jsx";
+import {referenceValueOptions, referenceValues} from "../data/referenceValues.js";
 
 export function Sidebar() {
   const {activeFiles} = useGlobalContext();
 
   const toggleDataFiltering = () => setDataFiltering((s) => !s);
+  const toggleGravityCorrection = () => setGravityCorrection((s) => !s);
 
   const clearSelectedFiles = () => {
     batch(() => {
@@ -36,6 +42,49 @@ export function Sidebar() {
       storeSelectedSessionsCounts(reconcile({}));
     });
   };
+
+  createEffect(() => {
+    const file = activeFiles()[0];
+    if (!file) return;
+
+    const session = file.rawObject.session;
+    const sessionKey = `${session.subjectName ?? ""}-${session.subjectNameFirst ?? ""}-${session["date(dd/mm/yyyy)"] ?? ""}`;
+    if (patientProfile().sessionKey === sessionKey) return;
+
+    setPatientProfile({
+      sessionKey,
+      sex: Array.isArray(session.subjectSex)
+        ? session.subjectSex.at(-1)
+        : session.subjectSex ?? "",
+      involvedSide: String(session.involvedSide ?? "").includes("vasen")
+        ? "vasen"
+        : String(session.involvedSide ?? "").includes("oikea")
+          ? "oikea"
+          : "",
+      weight: session.subjectWeight ?? "",
+      referenceValues: "Ei käytössä",
+    });
+  });
+
+  const updatePatientProfile = (key, value) =>
+    setPatientProfile((profile) => ({ ...profile, [key]: value }));
+
+  const availableReferenceValueOptions = createMemo(() => {
+    const { sex } = patientProfile();
+    return referenceValueOptions.filter((option) => {
+      const label = option.toLowerCase();
+      if (sex === "Mies" && (label.includes("naiset") || label.includes("tytöt"))) return false;
+      if (sex === "Nainen" && (label.includes("miehet") || label.includes("pojat"))) return false;
+      return true;
+    });
+  });
+
+  createEffect(() => {
+    const selected = patientProfile().referenceValues;
+    if (selected !== "Ei käytössä" && !availableReferenceValueOptions().includes(selected)) {
+      updatePatientProfile("referenceValues", "Ei käytössä");
+    }
+  });
 
   return (
     <nav
@@ -76,12 +125,18 @@ export function Sidebar() {
               <div class="flex flex-col gap-2">
                 <Checkbox
                   id="dataFiltering"
-                  label="Suodata tiedot"
+                  label="Suodatus"
                   checked={dataFiltering()}
                   onChange={toggleDataFiltering}
                 />
                 <Checkbox
-                  label="Näytä virhealueet"
+                  id="gravityCorrection"
+                  label="Painovoimakorjaus"
+                  checked={gravityCorrection()}
+                  onChange={toggleGravityCorrection}
+                />
+                <Checkbox
+                  label="Hajontakuvio"
                   checked={showErrorBands()}
                   onChange={() => setShowErrorBands((s) => !s)}
                 />
@@ -95,6 +150,62 @@ export function Sidebar() {
                 Sulje tiedostot
               </Button>
             </div>
+          </div>
+          <div class="flex flex-col gap-3 border border-gray-200 rounded-lg p-4">
+            <p class="text-center font-medium text-gray-700">Koehenkilö ja viitearvot</p>
+            <label class="flex flex-col gap-1 text-sm text-gray-700">
+              Sukupuoli
+              <select
+                class="border border-gray-300 rounded px-2 py-1 bg-white"
+                value={patientProfile().sex}
+                onChange={(event) => updatePatientProfile("sex", event.currentTarget.value)}
+              >
+                <option value="">Ei tiedossa</option>
+                <option value="Mies">Mies</option>
+                <option value="Nainen">Nainen</option>
+                <option value="Muu">Muu</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-sm text-gray-700">
+              Oireileva jalka
+              <select
+                class="border border-gray-300 rounded px-2 py-1 bg-white"
+                value={patientProfile().involvedSide}
+                onChange={(event) => updatePatientProfile("involvedSide", event.currentTarget.value)}
+              >
+                <option value="">Ei määritetty</option>
+                <option value="vasen">Vasen</option>
+                <option value="oikea">Oikea</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-sm text-gray-700">
+              Paino [kg]
+              <input
+                class="border border-gray-300 rounded px-2 py-1"
+                type="number"
+                min="1"
+                value={patientProfile().weight}
+                onInput={(event) => updatePatientProfile("weight", event.currentTarget.value)}
+              />
+            </label>
+            <label class="flex flex-col gap-1 text-sm text-gray-700">
+              Viitearvot
+              <select
+                class="border border-gray-300 rounded px-2 py-1 bg-white"
+                value={patientProfile().referenceValues}
+                onChange={(event) => updatePatientProfile("referenceValues", event.currentTarget.value)}
+              >
+                <option value="Ei käytössä">Ei käytössä</option>
+                <For each={availableReferenceValueOptions()}>
+                  {(option) => <option value={option}>{option}</option>}
+                </For>
+              </select>
+            </label>
+            <Show when={patientProfile().referenceValues !== "Ei käytössä"}>
+              <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
+                {referenceValues[patientProfile().referenceValues]?.source}
+              </p>
+            </Show>
           </div>
         </Show>
 

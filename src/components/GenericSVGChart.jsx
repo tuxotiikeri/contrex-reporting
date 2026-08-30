@@ -47,7 +47,7 @@ export function ChartText(props) {
   });
 
   return (
-    <text text-anchor="middle" x={props.x + props.width / 2} {...localProps()}>
+    <text text-anchor="middle" x={props.x + props.width / 2} font-size={props.fontSize} font-weight={props.fontWeight} {...localProps()}>
       {props.title}
     </text>
   );
@@ -201,6 +201,58 @@ export function ChartHorizontalHoverPointLine(props) {
           {hover().value}
         </text>
       </Show>
+    </Show>
+  );
+}
+
+// Draw a compact value marker directly on a curve at the current mouse position.
+export function ChartHoverPoint(props) {
+  asserts.assert1DArrayOfNumbersOrEmptyArray(props.points, "points");
+  asserts.assertTypeNumber(props.endIndex, "endIndex");
+  asserts.assertTypeNumber(props.startIndex, "startIndex");
+  asserts.assertTypeNumber(props.maxValue, "maxValue");
+  asserts.assertTypeNumber(props.minValue, "minValue");
+  asserts.assertTypeNumber(props.mouseXPercentage, "mouseXPercentage");
+
+  const hover = createMemo(() => {
+    if (props.mouseXPercentage < 0 || props.maxValue === props.minValue) {
+      return null;
+    }
+
+    const index =
+      props.startIndex +
+      Math.round(props.mouseXPercentage * (props.endIndex - props.startIndex));
+    const value = props.points[index];
+    if (!numberUtils.isNumber(value)) return null;
+    if (props.maxHoverValue != null && value > props.maxHoverValue) return null;
+
+    return {
+      value,
+      index,
+      x: props.x + props.mouseXPercentage * props.width,
+      y: props.fixedY ??
+        props.y +
+          (1 - (value - props.minValue) / (props.maxValue - props.minValue)) *
+            props.height,
+    };
+  });
+
+  return (
+    <Show when={hover()}>
+      {(point) => (
+        <g data-chart-hover-point>
+          <circle cx={point().x} cy={point().y} r="5" fill={props.color} />
+          <text
+            x={point().x + 9}
+            y={point().y + (props.labelOffsetY ?? 0)}
+            dominant-baseline="middle"
+            fill="black"
+            font-weight="600"
+          >
+            {props.label?.(point().value, point().index) ?? `${Math.round(point().value)} ${props.unit ?? ""}`}
+          </text>
+        </g>
+      )}
     </Show>
   );
 }
@@ -360,6 +412,7 @@ export function ChartPath(props) {
         ];
         for (let x2 = split.startIndex + 1; x2 <= split.endIndex; x2++) {
           const y2 = points[split.endIndex - (x2 - split.startIndex)];
+          if (props.stopAtValue != null && y2 > props.stopAtValue) break;
           const flippedY = chartUtils.flipYAxes(y2, maxValue);
           paths.push(
             `L ${x + (x2 - startIndex) * xStep} ${y + flippedY * yStep}`,
@@ -372,6 +425,7 @@ export function ChartPath(props) {
         ];
         for (let x2 = split.startIndex + 1; x2 <= split.endIndex; x2++) {
           const y2 = points[x2];
+          if (props.stopAtValue != null && y2 > props.stopAtValue) break;
           const flippedY = chartUtils.flipYAxes(y2, maxValue);
           paths.push(
             `L ${x + (x2 - startIndex) * xStep} ${y + flippedY * yStep}`,
@@ -655,10 +709,9 @@ export function ChartXAxisFloor(props) {
 
     const idealSegmentCount = Math.round(width / idealSegmentSize);
     const rawLabelIncrementCount = initialDelta / idealSegmentCount;
-    const closestLabelIncrementCount = arrayUtils.findByMinDelta(
-      labelIncrements,
-      rawLabelIncrementCount,
-    );
+    const closestLabelIncrementCount =
+      props.tickStep ??
+      arrayUtils.findByMinDelta(labelIncrements, rawLabelIncrementCount);
 
     const roundedStartValue =
       numberUtils.floorClosestToValue(
@@ -694,7 +747,9 @@ export function ChartXAxisFloor(props) {
         x: offset + x + step * i,
       });
 
-      grid.push(`M ${offset + x + i * step} ${y} l 0 ${height}`);
+      if (props.grid) {
+        grid.push(`M ${offset + x + i * step} ${y} l 0 ${height}`);
+      }
     }
 
     return {
@@ -730,15 +785,17 @@ export function ChartXAxisFloor(props) {
           )}
         </For>
       </g>
-      <g data-x-axis-grid>
-        <path
-          d={computed().grid}
-          stroke="black"
-          stroke-width=".25"
-          stroke-dasharray="2"
-          fill="none"
-        />
-      </g>
+      <Show when={props.grid}>
+        <g data-x-axis-grid>
+          <path
+            d={computed().grid}
+            stroke="black"
+            stroke-width=".25"
+            stroke-dasharray="2"
+            fill="none"
+          />
+        </g>
+      </Show>
     </>
   );
 }
@@ -780,10 +837,9 @@ export function ChartYAxisFloor(props) {
 
     const idealSegmentCount = Math.round(height / idealSegmentSize);
     const rawLabelIncrementCount = initialDelta / idealSegmentCount;
-    const closestLabelIncrementCount = arrayUtils.findByMinDelta(
-      labelIncrements,
-      rawLabelIncrementCount,
-    );
+    const closestLabelIncrementCount =
+      props.tickStep ??
+      arrayUtils.findByMinDelta(labelIncrements, rawLabelIncrementCount);
 
     const roundedStartValue =
       numberUtils.floorClosestToValue(
@@ -819,7 +875,9 @@ export function ChartYAxisFloor(props) {
         y: offset + y + step * i,
       });
 
-      grid.push(`M ${x} ${offset + y + i * step} l ${width} 0`);
+      if (props.grid) {
+        grid.push(`M ${x} ${offset + y + i * step} l ${width} 0`);
+      }
     }
 
     return {
@@ -835,8 +893,8 @@ export function ChartYAxisFloor(props) {
           {(label) => (
             <text
               dominant-baseline="middle"
-              text-anchor="start"
-              x={props.x + props.width + 4}
+              text-anchor="end"
+              x={props.x - 8}
               y={label.y}
               {...local}
             >
@@ -846,15 +904,17 @@ export function ChartYAxisFloor(props) {
           )}
         </For>
       </g>
-      <g data-y-axis-grid>
-        <path
-          d={computed().grid}
-          stroke="black"
-          stroke-width=".25"
-          stroke-dasharray="2"
-          fill="none"
-        />
-      </g>
+      <Show when={props.grid}>
+        <g data-y-axis-grid>
+          <path
+            d={computed().grid}
+            stroke="black"
+            stroke-width=".25"
+            stroke-dasharray="2"
+            fill="none"
+          />
+        </g>
+      </Show>
     </>
   );
 }
