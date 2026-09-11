@@ -1,6 +1,7 @@
 import { For } from "solid-js";
 import { activeProgram, parsedFileData, setActiveProgram } from "../signals.js";
 import { Button } from "./ui/index.js";
+import {programLabel} from "../i18n/index.js";
 
 export function ActiveProgramTypeButtons() {
   return (
@@ -17,7 +18,7 @@ export function ActiveProgramTypeButtons() {
           size="sm"
           onClick={() => setActiveProgram(programType)}
         >
-          {programType}
+          {programLabel(programType)}
         </Button>
       )}
     </For>

@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import { batch, createMemo, createSignal, ErrorBoundary } from "solid-js";
 import {
   ChartErrorBands,
@@ -14,10 +15,12 @@ import { asserts } from "../collections/collections.js";
 import { patientProfile } from "../signals.js";
 import { parsedFileData } from "../signals.js";
 import { resolveComparisonSides } from "../utils/comparisonSides.js";
+import { muscleCurveDirections, reportMetricIndices } from "../utils/reportMetricDefinitions.js";
+import { ChartLegend } from "./ChartLegend.jsx";
 
 export function AverageChart(props) {
   return (
-    <ErrorBoundary fallback="Three chart rendering failed">
+    <ErrorBoundary fallback={t("Kuvaajan piirtäminen epäonnistui")}>
       <Chart {...props} />
     </ErrorBoundary>
   );
@@ -43,12 +46,14 @@ function Chart(props) {
 
   const controls = { mouseX, mouseY };
   const svgArea = { width: svgWidth, height: svgHeight, x: 0, y: 0 };
-  const isEccentric = () => String(props.listOfParsedCTM()?.[0]?.rawObject?.programType ?? "").includes("eks/eks");
+  const muscleDirections = createMemo(() =>
+    muscleCurveDirections(props.listOfParsedCTM()?.[0]?.rawObject),
+  );
   return (
     <Show when={props.listOfParsedCTM()?.length}>
       <div class="flex flex-col gap-10">
-        <AverageErrorChartForTorque title="Etureisi - keskiarvo" type={isEccentric() ? "Flex" : "Ext"} {...props} />
-        <AverageErrorChartForTorque title="Takareisi - keskiarvo" type={isEccentric() ? "Ext" : "Flex"} {...props} />
+        <AverageErrorChartForTorque title={t("Etureisi - keskiarvo")} type={muscleDirections().quadriceps} {...props} />
+        <AverageErrorChartForTorque title={t("Takareisi - keskiarvo")} type={muscleDirections().hamstrings} {...props} />
         <Show when={props.showHQ !== false}>
           <AngleSpecificHQRatio type="Flex" {...props} />
         </Show>
@@ -68,9 +73,8 @@ function Chart(props) {
 
     const combinedValues = createMemo(() => {
       const files = props.listOfParsedCTM();
-      const quadricepsIndex = isEccentric() ? 111 : 110;
       const peakQuadriceps = Math.max(
-        ...files.map((file) => Math.abs(Number(file.rawObject.analysis?.[quadricepsIndex])) || 0),
+        ...files.map(({rawObject}) => Math.abs(Number(rawObject.analysis?.[reportMetricIndices(rawObject).quadriceps.torque])) || 0),
       );
       return {
         minValue: 0,
@@ -147,11 +151,12 @@ function Chart(props) {
           paddingLeft={70}
           paddingRight={25}
           paddingBottom={40}
-          paddingTop={22}
+          paddingTop={54}
         >
           {(borderArea) => (
             <>
-              <ChartText position="top" {...borderArea} title={props.title} fontSize="18" fontWeight="700" />
+              <ChartText position="top" {...borderArea} y={22} title={props.title} fontSize="16" fontWeight="700" />
+              <ChartLegend x={svgArea.width - 290} y={borderArea.y - 18} includeLSI />
               <ChartPadding name="lines" {...borderArea} padding={15}>
                 {(lineArea) => (
                   <>
@@ -160,14 +165,15 @@ function Chart(props) {
                       y={borderArea.y}
                       dominant-baseline="ideographic"
                       text-anchor="start"
+                      font-size="10"
                     >
-                      Vääntö [Nm]
+                      {t("Vääntö [Nm]")}
                     </text>
                     <ChartText
                       position="bottom"
                       {...borderArea}
                       y={borderArea.y + 20}
-                      title="Kulma [aste]"
+                      title={t("Kulma [aste]")}
                     />
                     <ChartXAxisFloor
                       {...borderArea}
@@ -398,15 +404,16 @@ function Chart(props) {
             paddingLeft={70}
             paddingRight={25}
             paddingBottom={40}
-            paddingTop={22}
+            paddingTop={42}
           >
             {(borderArea) => (
               <>
                 <ChartText
                   position="top"
                   {...borderArea}
-                  title="Kulmakohtainen HQ-suhde" fontSize="18" fontWeight="700"
+                  title={t("Kulmakohtainen HQ-suhde")} fontSize="16" fontWeight="700"
                 />
+                <ChartLegend x={svgArea.width - 188} y={borderArea.y - 18} />
                 <ChartPadding name="lines" {...borderArea} padding={15}>
                   {(lineArea) => (
                     <>
@@ -414,7 +421,7 @@ function Chart(props) {
                         position="bottom"
                         {...borderArea}
                         y={borderArea.y + 20}
-                        title="Kulma [aste]"
+                        title={t("Kulma [aste]")}
                       />
                       <ChartXAxisFloor
                         {...borderArea}

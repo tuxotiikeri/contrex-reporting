@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import {createSignal, createMemo, For, createEffect, on, Show} from "solid-js";
 import {fileUtils} from "../utils/utils.js";
 import {FileBrowser} from "./FileBrowser.jsx";
@@ -33,7 +34,7 @@ export function FileManager() {
   );
 
   const saveDataAsCSV = (data) => {
-    const columns = ["Kammen voima", "Kammen nopeus", "Kammen kulma"];
+    const columns = ["Kammen voima", "Kammen nopeus", "Kammen kulma"].map(t);
     fileUtils.generateFileAndDownload(
       fileUtils.formatToCSV(data, columns),
       "data.csv",
@@ -74,7 +75,7 @@ export function FileManager() {
                     size="sm"
                     onClick={() => saveDataAsCSV(activeFile().rawObject.data)}
                   >
-                    Download as CSV
+                    {t("Lataa CSV")}
                   </Button>
                   <Show when={location.href.includes("localhost")}>
                     <Button
@@ -84,7 +85,7 @@ export function FileManager() {
                         printDataAsTextToConsole(activeFile().rawObject.data)
                       }
                     >
-                      Print to console [DEBUG]
+                      {t("Näytä konsolissa [DEBUG]")}
                     </Button>
                   </Show>
                 </div>

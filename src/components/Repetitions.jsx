@@ -1,9 +1,10 @@
+import { t } from "../i18n/index.js";
 import { ErrorBoundary, For } from "solid-js";
 import { numberUtils } from "../utils/utils";
 
 export function Repetitions(props) {
   return (
-    <ErrorBoundary fallback="Repetition data failed to load">
+    <ErrorBoundary fallback={t("Toistotietojen lataaminen epäonnistui")}>
       <Show when={props.repetitions}>
         <ul>
           <For

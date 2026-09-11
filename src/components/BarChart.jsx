@@ -1,6 +1,8 @@
+import { t } from "../i18n/index.js";
 import { createMemo, ErrorBoundary, mergeProps } from "solid-js";
 import { asserts } from "../collections/collections.js";
 import { arrayUtils, numberUtils } from "../utils/utils.js";
+import { hqRatioFromChannels } from "../utils/reportMetricDefinitions.js";
 import {
   ChartPadding,
   ChartText,
@@ -8,7 +10,7 @@ import {
 } from "./GenericSVGChart.jsx";
 export function BarChart(props) {
   return (
-    <ErrorBoundary fallback="Barchart rendering failed">
+    <ErrorBoundary fallback={t("Palkkikuvaajan piirtäminen epäonnistui")}>
       <Chart {...props} />
     </ErrorBoundary>
   );
@@ -44,7 +46,7 @@ function Chart(props) {
                   text-anchor="middle"
                   x={svgArea.x + svgArea.width / 2}
                 >
-                  {props.title}
+                  {t(props.title)}
                 </tspan>
                 <tspan
                   dominant-baseline="ideographic"
@@ -77,10 +79,7 @@ function Chart(props) {
       for (const { rawObject } of props.listOfParsedCTM()) {
         const { analysis } = rawObject;
         if (props.metric === "hq") {
-          const isEccentric = rawObject.programType?.includes("eks/eks");
-          const quadriceps = Math.abs(analysis[isEccentric ? 113 : 112]);
-          const hamstrings = Math.abs(analysis[isEccentric ? 112 : 113]);
-          const hq = quadriceps ? hamstrings / quadriceps : NaN;
+          const hq = hqRatioFromChannels(analysis[112], analysis[113], rawObject);
           if (numberUtils.isNumber(hq)) ext.push(hq);
           continue;
         }
@@ -184,7 +183,7 @@ function BarLineGroups(props) {
               <ChartText
                 position="bottom"
                 {...barLineArea}
-                title={props.groupNames?.[i()]}
+                      title={t(props.groupNames?.[i()])}
               />
             </>
           )}

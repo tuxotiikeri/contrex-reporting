@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import FilterFilesFromActiveFolders from "../workers/filterFilesFromActiveFolders.js?worker";
 import parseSelectedFiles from "../workers/parseSelectedFiles.js?worker";
 import {Checkbox} from "./ui/Checkbox.jsx";
@@ -59,6 +60,8 @@ import {
 import {useGlobalContext} from "../providers";
 import {Button} from "./ui/Button.jsx";
 import {Dropdown} from "./ui/Dropdown.jsx";
+import {LanguageSelector} from "./LanguageSelector.jsx";
+import {programLabel} from "../i18n/index.js";
 
 export function FileBrowser() {
   const {activeFiles} = useGlobalContext();
@@ -307,6 +310,7 @@ export function FileBrowser() {
   return (
     <>
       <dialog id="file-popup" class="space-y-4">
+        <LanguageSelector />
         <Button
           variant="dangerAlt"
           size="xs"
@@ -319,7 +323,7 @@ export function FileBrowser() {
 
         <div class="flex justify-center">
           <Button variant="primary" size="xl" onClick={handleOpenDirectory}>
-            Valitse kansio
+            {t("Valitse kansio")}
           </Button>
         </div>
 
@@ -381,24 +385,24 @@ export function FileBrowser() {
     return (
       <div class="session-table overflow-y-auto mt-2">
         <div class="session-header">
-          <Dropdown label="Istunto / Tiedosto" disabled/>
+          <Dropdown label={t("Istunto / Tiedosto")} disabled/>
           <Dropdown
-            label="Päivämäärä"
+            label={t("Päivämäärä")}
             options={["Uudet", "Vanhat"]}
             onSelect={(value) => storeSessionFilters("date", value)}
             selected={sessionFilters.date}
           />
           <Dropdown
-            label="Aika"
+            label={t("Aika")}
             options={["Uudet", "Vanhat"]}
             onSelect={(v) => storeSessionFilters("time", v)}
             selected={sessionFilters.time}
           />
-          <Dropdown label="Etunimi" disabled/>
-          <Dropdown label="Sukunimi" disabled/>
-          <Dropdown label="ID" disabled/>
+          <Dropdown label={t("Etunimi")} disabled/>
+          <Dropdown label={t("Sukunimi")} disabled/>
+          <Dropdown label={t("ID")} disabled/>
           <Dropdown
-            label="Jalka"
+            label={t("Jalka")}
             options={["vasen", "oikea"]}
             onSelect={(value) =>
               storeSessionFilters("foot", translateLegSide(value))
@@ -406,18 +410,18 @@ export function FileBrowser() {
             selected={translateLegSide(sessionFilters.foot)}
           />
           <Dropdown
-            label="Nopeus"
+            label={t("Nopeus")}
             options={collectedValues().speed}
             onSelect={(value) => storeSessionFilters("speed", value)}
             selected={sessionFilters.speed}
           />
           <Dropdown
-            label="Ohjelma"
+            label={t("Ohjelma")}
             options={collectedValues().program}
             onSelect={(value) => storeSessionFilters("program", value)}
             selected={sessionFilters.program}
           />
-          <Dropdown label="Tiedostot" disabled/>
+          <Dropdown label={t("Tiedostot")} disabled/>
         </div>
         <div class="session-body">
           <For each={filteredSessions()}>
@@ -561,9 +565,9 @@ export function FileBrowser() {
                           <p>-</p>
                           <p>-</p>
                           <p>{file.subjectId}</p>
-                          <p>{translateLegSide(file.legSide)}</p>
+                          <p>{t(translateLegSide(file.legSide))}</p>
                           <p>{file.speed}</p>
-                          <p>{file.program}</p>
+                          <p>{programLabel(file.program)}</p>
                           <p>-</p>
                         </label>
                       )}
@@ -631,7 +635,7 @@ export function FileBrowser() {
         <div class="space-x-2">
           <Show when={doesNotHaveAccess()}>
             <Button variant="secondary" size="sm" onClick={askForFolderAccess}>
-              Lataa
+              {t("Lataa")}
             </Button>
           </Show>
           <Button
@@ -639,7 +643,7 @@ export function FileBrowser() {
             size="sm"
             onClick={removeRecentFolderByIndex}
           >
-            Poista
+            {t("Poista")}
           </Button>
         </div>
       </li>
@@ -654,27 +658,27 @@ export function FileBrowser() {
       >
         <input
           type="text"
-          placeholder="Etunimi"
+          placeholder={t("Etunimi")}
           value={firstNameInput()}
           onInput={(e) => setFirstNameInput(e.currentTarget.value)}
           class="p-2 border rounded-lg"
         />
         <input
           type="text"
-          placeholder="Subject ID"
+          placeholder={t("Subject ID")}
           value={subjectIdInput()}
           onInput={(e) => setSubjectIdInput(e.currentTarget.value)}
           class="p-2 border rounded-lg"
         />
         <input
           type="text"
-          placeholder="Sukunimi"
+          placeholder={t("Sukunimi")}
           value={lastNameInput()}
           onInput={(e) => setLastNameInput(e.currentTarget.value)}
           class="p-2 border rounded-lg"
         />
         <Button variant="info" size="lg" type="submit">
-          Hae
+          {t("Hae")}
         </Button>
       </form>
     );
@@ -685,6 +689,7 @@ export function FileBrowser() {
       <div class="flex items-center space-x-2 mt-3">
         <Checkbox
           id="safe-mode"
+          label={t("Piilota nimet")}
           checked={safeMode()}
           onChange={() => setSafeMode((m) => !m)}
         />
@@ -706,14 +711,14 @@ export function FileBrowser() {
             });
           }}
         >
-          Tyhjennä suodatus
+          {t("Tyhjennä suodatus")}
         </Button>
         <Button
           variant={activeFiles().length ? "danger" : "secondary"}
           size="xs"
           onClick={clearSelectedFiles}
         >
-          Sulje valitut tiedostot
+          {t("Sulje valitut tiedostot")}
         </Button>
       </div>
     );

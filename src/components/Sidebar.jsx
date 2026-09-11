@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import {FiPrinter, FiHardDrive} from "solid-icons/fi";
 import {batch, createEffect, createMemo, For, Show} from "solid-js";
 import {generatePDF} from "../utils/pdfUtils";
@@ -101,20 +102,20 @@ export function Sidebar() {
             <IconButton
               onClick={() => document.querySelector("#file-popup")?.showModal()}
               icon={FiHardDrive}
-              label="Tiedostot"
+              label={t("Tiedostot")}
             />
             <Show when={activeFiles().length}>
               <IconButton
                 onClick={generatePDF}
                 icon={FiPrinter}
-                label="Tulosta"
+                label={t("Tulosta")}
               />
             </Show>
           </div>
 
           <Show when={!activeFiles().length}>
             <p class="text-sm text-gray-500 text-center mt-2">
-              Valitse tiedostot painamalla yllä olevaa painiketta.
+              {t("Valitse tiedostot painamalla yllä olevaa painiketta.")}
             </p>
           </Show>
         </div>
@@ -126,18 +127,18 @@ export function Sidebar() {
               <div class="flex flex-col gap-2">
                 <Checkbox
                   id="dataFiltering"
-                  label="Suodatus"
+                  label={t("Suodatus")}
                   checked={dataFiltering()}
                   onChange={toggleDataFiltering}
                 />
                 <Checkbox
                   id="gravityCorrection"
-                  label="Painovoimakorjaus"
+                  label={t("Painovoimakorjaus")}
                   checked={gravityCorrection()}
                   onChange={toggleGravityCorrection}
                 />
                 <Checkbox
-                  label="Hajontakuvio"
+                  label={t("Hajontakuvio")}
                   checked={showErrorBands()}
                   onChange={() => setShowErrorBands((s) => !s)}
                 />
@@ -148,39 +149,39 @@ export function Sidebar() {
                 onClick={clearSelectedFiles}
                 class="self-center"
               >
-                Sulje tiedostot
+                {t("Sulje tiedostot")}
               </Button>
             </div>
           </div>
           <div class="flex flex-col gap-3 border border-gray-200 rounded-lg p-4">
-            <p class="text-center font-medium text-gray-700">Mitattavan tiedot</p>
+            <p class="text-center font-medium text-gray-700">{t("Mitattavan tiedot")}</p>
             <label class="flex flex-col gap-1 text-sm text-gray-700">
-              Sukupuoli
+              {t("Sukupuoli")}
               <select
                 class="border border-gray-300 rounded px-2 py-1 bg-white"
                 value={patientProfile().sex}
                 onChange={(event) => updatePatientProfile("sex", event.currentTarget.value)}
               >
-                <option value="">Ei tiedossa</option>
-                <option value="Mies">Mies</option>
-                <option value="Nainen">Nainen</option>
-                <option value="Muu">Muu</option>
+                <option value="">{t("Ei tiedossa")}</option>
+                <option value="Mies">{t("Mies")}</option>
+                <option value="Nainen">{t("Nainen")}</option>
+                <option value="Muu">{t("Muu")}</option>
               </select>
             </label>
             <label class="flex flex-col gap-1 text-sm text-gray-700">
-              Oireileva jalka
+              {t("Oireileva jalka")}
               <select
                 class="border border-gray-300 rounded px-2 py-1 bg-white"
                 value={patientProfile().involvedSide}
                 onChange={(event) => updatePatientProfile("involvedSide", event.currentTarget.value)}
               >
-                <option value="">Ei määritetty</option>
-                <option value="vasen">Vasen</option>
-                <option value="oikea">Oikea</option>
+                <option value="">{t("Ei määritetty")}</option>
+                <option value="vasen">{t("Vasen")}</option>
+                <option value="oikea">{t("Oikea")}</option>
               </select>
             </label>
             <label class="flex flex-col gap-1 text-sm text-gray-700">
-              Paino [kg]
+              {t("Paino [kg]")}
               <input
                 class="border border-gray-300 rounded px-2 py-1"
                 type="number"
@@ -190,30 +191,30 @@ export function Sidebar() {
               />
             </label>
             <label class="flex flex-col gap-1 text-sm text-gray-700">
-              Lisäkommentti
+              {t("Lisäkommentti")}
               <textarea
                 class="border border-gray-300 rounded px-2 py-1 min-h-16"
                 value={patientProfile().additionalComment}
                 onInput={(event) => updatePatientProfile("additionalComment", event.currentTarget.value)}
-                placeholder="Esim. 6 kk leikkauksesta"
+                placeholder={t("Esim. 6 kk leikkauksesta")}
               />
             </label>
             <label class="flex flex-col gap-1 text-sm text-gray-700">
-              Viitearvot
+              {t("Viitearvot")}
               <select
                 class="border border-gray-300 rounded px-2 py-1 bg-white"
                 value={patientProfile().referenceValues}
                 onChange={(event) => updatePatientProfile("referenceValues", event.currentTarget.value)}
               >
-                <option value="Ei käytössä">Ei käytössä</option>
+                <option value="Ei käytössä">{t("Ei käytössä")}</option>
                 <For each={availableReferenceValueOptions()}>
-                  {(option) => <option value={option}>{option}</option>}
+                  {(option) => <option value={option}>{t(option)}</option>}
                 </For>
               </select>
             </label>
             <Show when={patientProfile().referenceValues !== "Ei käytössä"}>
               <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
-                {referenceValues[patientProfile().referenceValues]?.source}
+                {t(referenceValues[patientProfile().referenceValues]?.source)}
               </p>
             </Show>
           </div>
@@ -258,7 +259,7 @@ function ActiveFilesAndRepetitions() {
             {(side) => (
               <div class="flex-1 flex flex-col bg-gray-50 border border-gray-100 rounded-lg p-2">
                 <p class="text-center font-semibold text-gray-700 mb-2">
-                  {sideLabels[side] ?? side}
+                  {t(sideLabels[side] ?? side)}
                 </p>
                 <div class="flex flex-col gap-2">
                   <For
@@ -279,8 +280,8 @@ function ActiveFilesAndRepetitions() {
                             onClick={() => setActiveFileIndex(originalIndex())}
                             class="flex items-center justify-between gap-2 w-full"
                           >
-                            {sideLabels[fileHandler.legSide?.toLowerCase()] ??
-                              fileHandler.legSide}
+                            {t(sideLabels[fileHandler.legSide?.toLowerCase()] ??
+                              fileHandler.legSide)}
                             <span
                               class="w-2 h-2 rounded-full"
                               style={{
@@ -316,7 +317,7 @@ function ActiveFilesAndRepetitions() {
         <p class="text-center font-medium">
           {activeFile().name} {activeFile().time}
         </p>
-        <p class="text-center text-gray-700 mt-1 mb-3">Toistot</p>
+        <p class="text-center text-gray-700 mt-1 mb-3">{t("Toistot")}</p>
 
         <div class="overflow-y-auto max-h-[200px]">
           <ul

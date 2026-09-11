@@ -1,6 +1,8 @@
+import { t } from "../i18n/index.js";
 import { For, createMemo } from "solid-js";
 import { patientProfile, parsedFileData } from "../signals.js";
 import { resolveComparisonSides } from "../utils/comparisonSides.js";
+import { ChartLegend } from "./ChartLegend.jsx";
 
 const SIDE_COLORS = { right: "#159447", left: "#d33434" };
 
@@ -8,17 +10,17 @@ const niceCeiling = (value) => Math.max(100, Math.ceil((value * 1.2) / 100) * 10
 
 export function EnduranceWorkCharts(props) {
   const files = createMemo(() => props.listOfParsedCTM?.() ?? []);
-  const sharedMax = createMemo(() => niceCeiling(Math.max(...files().flatMap((file) => {
-    const ext = file.rawObject.repetitions?.work1 ?? [];
-    const flex = file.rawObject.repetitions?.work2 ?? [];
-    return Array.from({length: Math.min(ext.length, flex.length)}, (_, index) =>
-      Math.abs(Number(ext[index]) || 0) + Math.abs(Number(flex[index]) || 0),
-    );
-  }), 0)));
+  // Both muscle charts share one readable scale. It is based on the best
+  // individual repetition (not extension + flexion summed together), with
+  // 20% headroom and 100 J tick spacing.
+  const sharedMax = createMemo(() => niceCeiling(Math.max(...files().flatMap((file) => [
+    ...(file.rawObject.repetitions?.work1 ?? []),
+    ...(file.rawObject.repetitions?.work2 ?? []),
+  ].map((value) => Math.abs(Number(value) || 0))), 0)));
   return (
     <div class="flex flex-col gap-5">
-      <WorkChart title="Etureisi – työ / toisto" direction="Ext" files={files} maxValue={sharedMax} />
-      <WorkChart title="Takareisi – työ / toisto" direction="Flex" files={files} maxValue={sharedMax} />
+      <WorkChart title={t("Etureisi – työ / toisto")} direction="Ext" files={files} maxValue={sharedMax} />
+      <WorkChart title={t("Takareisi – työ / toisto")} direction="Flex" files={files} maxValue={sharedMax} />
     </div>
   );
 }
@@ -53,8 +55,9 @@ function WorkChart(props) {
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{"font-family": "Helvetica, Arial, sans-serif"}}>
-      <text x={plot.x} y="18" font-size="18" font-weight="700" fill="#2A3940">{props.title}</text>
-      <text x={plot.x} y="31" font-size="10" fill="#5F696E">Työ [J]</text>
+      <text x={plot.x} y="12" font-size="16" font-weight="700" fill="#2A3940">{props.title}</text>
+      <text x={plot.x} y="31" font-size="10" fill="#5F696E">{t("Työ [J]")}</text>
+      <ChartLegend x={260} y={19} includeLSI />
       <For each={Array.from({ length: maxValue() / 100 + 1 }, (_, index) => index * 100)}>
         {(tick) => <>
           <text x={plot.x - 8} y={yAt(tick) + 3} text-anchor="end" font-size="10">{tick}</text>
@@ -76,7 +79,7 @@ function WorkChart(props) {
       <For each={[0, 4, 9, 14, 19].filter((index) => index < maximumRepetitions())}>
         {(index) => <text x={xAt(index)} y={plot.y + plot.height + 24} text-anchor="middle" font-size="10">{index + 1}</text>}
       </For>
-      <text x={plot.x + plot.width / 2} y={height - 5} text-anchor="middle" font-size="11">Toisto</text>
+      <text x={plot.x + plot.width / 2} y={height - 5} text-anchor="middle" font-size="11">{t("Toisto")}</text>
     </svg>
   );
 }

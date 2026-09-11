@@ -7,6 +7,7 @@ import {
   mergeProps
 } from "solid-js";
 import {signalUtils} from "../../utils/utils";
+import {t, programLabel} from "../../i18n/index.js";
 
 let activeDropdownSetter = null;
 
@@ -111,7 +112,7 @@ export function Dropdown(props) {
         {/* Selected value below label */}
         <Show when={selected()}>
           <div class="mt-[1px] text-xs text-gray-500 font-semibold text-center">
-            {selected()}
+            {t(programLabel(selected()))}
           </div>
         </Show>
       </button>
@@ -142,7 +143,7 @@ export function Dropdown(props) {
                 }}
                 onClick={() => handleSelect(opt)}
               >
-                <span>{opt}</span>
+                <span>{t(programLabel(opt))}</span>
               </li>
             )}
           </For>

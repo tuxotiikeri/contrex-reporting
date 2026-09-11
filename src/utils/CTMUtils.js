@@ -1,6 +1,7 @@
 import { asserts } from "../collections/collections";
 import { arrayUtils, numberUtils, stringUtils } from "./utils";
 import { applyGravityCorrection } from "./gravityCorrection.js";
+import { hqRatioFromChannels } from "./reportMetricDefinitions.js";
 import {
   createMarkerBasedRepetitionSplits,
   createMovementBasedRepetitionSplits,
@@ -167,7 +168,7 @@ const createCollections = (
   speeds,
   dataFiltering,
   disabledList,
-  isEccentric,
+  program,
 ) => {
   // ========================= POINTS =============================
   const anglePointCollection = createPointCollection(
@@ -230,7 +231,7 @@ const createCollections = (
       anglePointCollection.points,
       unifiedAngleSplitsCollection.splits,
       dataFiltering,
-      isEccentric,
+      program,
     );
 
   const angleSpecificHQRatioSplitCollection =
@@ -311,7 +312,7 @@ function createAngleSpecificHQRatioPointCollection(
   anglePoints,
   splits,
   dataFiltering,
-  isEccentric = false,
+  program,
 ) {
   const averages = [],
     lowest = [],
@@ -458,37 +459,14 @@ function createAngleSpecificHQRatioPointCollection(
   asserts.assert1DArrayOfNumbersOrEmptyArray(averagesExt);
   asserts.assert1DArrayOfNumbersOrEmptyArray(averagesFlex);
 
-  if (dataFiltering) {
-    const averageFilter = createLowpass11Hz(256);
-    for (let i = 0; i < averagesExt.length; i++) {
-      if (averagesExt[i] === 0) {
-        averages[i] = 0;
-      } else {
-        const average = numberUtils.truncDecimals(
-          averageFilter.process(
-            (isEccentric ? averagesExt[i] : averagesFlex[i]) /
-              repetitions /
-              ((isEccentric ? averagesFlex[i] : averagesExt[i]) / repetitions),
-          ),
-          3,
-        );
-        averages[i] = average;
-      }
-    }
-  } else {
-    for (let i = 0; i < averagesExt.length; i++) {
-      if (averagesExt[i] === 0) {
-        averages[i] = 0;
-      } else {
-        const average = numberUtils.truncDecimals(
-          (isEccentric ? averagesExt[i] : averagesFlex[i]) /
-            repetitions /
-            ((isEccentric ? averagesFlex[i] : averagesExt[i]) / repetitions),
-          3,
-        );
-        averages[i] = average;
-      }
-    }
+  const averageFilter = dataFiltering ? createLowpass11Hz(256) : null;
+  for (let i = 0; i < averagesExt.length; i++) {
+    // Convert movement channels to H/Q before filtering; never invert an
+    // already-filtered curve or infer a muscle from the larger torque.
+    const ratio = hqRatioFromChannels(averagesExt[i], averagesFlex[i], program);
+    averages[i] = Number.isFinite(ratio)
+      ? numberUtils.truncDecimals(averageFilter ? averageFilter.process(ratio) : ratio, 3)
+      : 0;
   }
 
   pointsCollection.maxValue = arrayUtils.maxValue(averages) || 0;
@@ -701,7 +679,10 @@ const createAnalysis = (repetitions, weight) => {
         arrayUtils.average(repetitions.powerAvg1)) *
       100,
     203: arrayUtils.maxValue(repetitions.torquePeak1) / weight,
-    204: arrayUtils.maxValue(repetitions.torquePeak2) / weight,
+    // Flexion torque peaks are stored with a negative sign. Use the most
+    // negative individual peak so Nm/kg represents the same best repetition
+    // as the displayed flexion peak torque (analysis index 111).
+    204: arrayUtils.minValue(repetitions.torquePeak2) / weight,
     205: arrayUtils.average(repetitions.work1) / weight,
     206: arrayUtils.average(repetitions.work2) / weight,
     207: arrayUtils.average(repetitions.powerAvg1) / weight,
@@ -1060,7 +1041,7 @@ const formatRawCTMObject = (
     object.configuration.speed,
     dataFiltering,
     disabledList,
-    object.configuration.program?.[1]?.includes("eks/eks"),
+    object,
   );
   object.pointCollections = collections.points;
   object.splitCollections = collections.splits;

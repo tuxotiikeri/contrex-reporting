@@ -1,13 +1,16 @@
 import { parsedFileData, patientProfile } from "../signals";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import {localizedAutoTable as autoTable, reportText, setReportLanguage} from "../i18n/pdf.js";
 import { symmetryPercent, padRoundDecimalsToLength } from "./numberUtils";
 import tickIcon from "../assets/icons/tick.png";
 import crossIcon from "../assets/icons/delete.png";
 import { numberUtils } from "./utils";
 import {referenceValues} from "../data/referenceValues.js";
-import {mixedRatio, reportMetricIndices} from "./reportMetricDefinitions.js";
+import {reportMetricIndices} from "./reportMetricDefinitions.js";
+import {reportRows} from "./reportRows.js";
+export {reportRows} from "./reportRows.js";
 import {resolveComparisonSides} from "./comparisonSides.js";
+import {SYMMETRY_SCALE, symmetryMarkerPosition, symmetryScaleSegments, symmetryStatusColor} from "./symmetryScale.js";
 const reportColors = {
   ink: [42, 57, 64],
   accent: [255, 80, 0],
@@ -20,8 +23,10 @@ const reportColors = {
 function addPatientInfo(pdf, patientInfo, files) {
   const involved = String(patientInfo.involvedSide ?? "").includes("vasen") ? "Vasen" : String(patientInfo.involvedSide ?? "").includes("oikea") ? "Oikea" : "–";
   const subjectName = [patientInfo.subjectNameFirst, patientInfo.subjectName].filter(Boolean).join(" ");
-  const subjectId = patientInfo.subjectId ?? patientInfo["subject id"] ?? patientInfo.subjectID;
-  const subjectLabel = subjectId ? `ID: ${subjectId}` : `Nimi: ${subjectName || "–"}`;
+  const subjectId = patientInfo.subjectId ?? patientInfo["subject-id"] ?? patientInfo["subject id"] ?? patientInfo.subjectID;
+  // The header is deliberately labelled ID in every case: a name is the most
+  // useful human identifier when it exists; anonymous CTM exports use subject ID.
+  const subjectLabel = `${reportText(pdf, "ID")}: ${subjectName || subjectId || "–"}`;
   const date = files[0]?.rawObject?.measurement?.["date(dd/mm/yyyy)"] ?? "–";
   const comment = String(patientInfo.additionalComment || "–");
 
@@ -30,24 +35,24 @@ function addPatientInfo(pdf, patientInfo, files) {
   pdf.setTextColor(...reportColors.ink);
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(13);
-  pdf.text("Metropolia liikelaboratorio", 10, 19);
+  pdf.text(reportText(pdf, "Metropolia liikelaboratorio"), 10, 19);
   pdf.setFontSize(8.5);
-  pdf.text("Isokineettinen polven ojennus- ja koukistusvoimamittaus", 10, 25);
+  pdf.text(reportText(pdf, "Isokineettinen polven ojennus- ja koukistusvoimamittaus"), 10, 25);
   pdf.setFillColor(...reportColors.pale);
   pdf.setDrawColor(...reportColors.border);
   pdf.roundedRect(126, 14, 74, 29, 2, 2, "FD");
   pdf.setTextColor(...reportColors.ink);
   pdf.setFontSize(6.6);
   pdf.setFont("Helvetica", "bold");
-  pdf.text(`Testi pvm: ${date}`, 130, 19.5);
-  pdf.text(subjectLabel, 130, 25.5);
-  pdf.text(`Kehonpaino: ${patientInfo.subjectWeight ?? "–"} kg`, 130, 31.5);
-  pdf.text(`Oireinen jalka: ${involved}`, 130, 37.5);
+  pdf.text(`${reportText(pdf, "Testi pvm")}: ${date}`, 130, 19.5);
+  pdf.text(reportText(pdf, subjectLabel), 130, 25.5);
+  pdf.text(`${reportText(pdf, "Kehonpaino")}: ${patientInfo.subjectWeight ?? "–"} kg`, 130, 31.5);
+  pdf.text(`${reportText(pdf, "Oireinen jalka")}: ${reportText(pdf, involved)}`, 130, 37.5);
   pdf.setFont("Helvetica", "normal");
   pdf.setFontSize(6.8);
   pdf.setTextColor(95, 105, 110);
-  pdf.text("Myllypurontie 1, 00920 | liikelaboratorio@metropolia.fi", 10, 36);
-  if (comment && comment !== "–") pdf.text(`Lisäkommentti: ${comment}`, 10, 41);
+  pdf.text(reportText(pdf, "Myllypurontie 1, 00920 | liikelaboratorio@metropolia.fi"), 10, 36);
+  if (comment && comment !== "–") pdf.text(`${reportText(pdf, "Lisäkommentti")}: ${comment}`, 10, 41);
   pdf.setTextColor(0);
 }
 
@@ -101,10 +106,10 @@ const TESTS = [
 ];
 
 const DETAIL_PROTOCOLS = {
-  kons60: "Konsentrinen 60°/s, isokineettinen ballistinen, 3 toistoa, painovoimakorjaus, alipäästösuodatus, kitkakompensointi.",
-  kons240: "Konsentrinen 240°/s, isokineettinen ballistinen, 3 toistoa, painovoimakorjaus, alipäästösuodatus, kitkakompensointi.",
-  eks30: "Eksentrinen 30°/s, isokineettinen ballistinen, 2 toistoa, painovoimakorjaus, alipäästösuodatus, kitkakompensointi.",
-  kons180: "Konsentrinen 180°/s, isokineettinen ballistinen, 20 toistoa, painovoimakorjaus, alipäästösuodatus, kitkakompensointi.",
+  kons60: ["Konsentrinen 60°/s, 3 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  kons240: ["Konsentrinen 240°/s, 3 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  eks30: ["Eksentrinen 30°/s, 2 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  kons180: ["Konsentrinen 180°/s, 20 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
 };
 
 const pdfColors = {
@@ -113,20 +118,8 @@ const pdfColors = {
 };
 
 function drawSymmetryBar(pdf, x, y, percentage, barWidth = 50, barHeight = 3) {
-  const minVal = 75;
-  const maxVal = 125;
-  const val = parseFloat(percentage);
-
-  const zones = [
-    [75, 80, [246, 174, 164]],
-    [80, 90, [255, 184, 92]],
-    [90, 95, [255, 218, 102]],
-    [95, 105, [154, 205, 93]],
-    [105, 110, [255, 218, 102]],
-    [110, 120, [255, 184, 92]],
-    [120, 125, [246, 174, 164]],
-  ];
-  zones.forEach(([from, to, color]) => {
+  const {min: minVal, max: maxVal} = SYMMETRY_SCALE;
+  symmetryScaleSegments().forEach(([from, to, color]) => {
     pdf.setFillColor(...color);
     pdf.rect(
       x + ((from - minVal) / (maxVal - minVal)) * barWidth,
@@ -136,146 +129,10 @@ function drawSymmetryBar(pdf, x, y, percentage, barWidth = 50, barHeight = 3) {
       "F",
     );
   });
-  const adjustedVal = Math.min(Math.max(val, minVal), maxVal);
-  const posX = x + ((adjustedVal - minVal) / (maxVal - minVal)) * barWidth;
+  const posX = x + symmetryMarkerPosition(percentage) * barWidth;
   pdf.setDrawColor(0);
-  pdf.line(posX, y - 1, posX, y + barHeight + 1);
-}
-
-const getVal = (data, idx) => {
-  if (!data || typeof data[idx] !== "number") return "–";
-  return padRoundDecimalsToLength(Math.abs(data[idx]), 3);
-};
-
-function getSideHeaders(involvedSide) {
-  let operated = null;
-
-  if (involvedSide?.includes("vasen")) operated = "vasen";
-  if (involvedSide?.includes("oikea")) operated = "oikea";
-
-  const rightHeader = operated === "oikea" ? "Oikea (L)" : "Oikea";
-  const leftHeader = operated === "vasen" ? "Vasen (L)" : "Vasen";
-
-  return { operated, rightHeader, leftHeader };
-}
-
-const metricReference = (referenceSet, testKey, key) =>
-  referenceSet?.metrics?.[testKey]?.[key] ?? null;
-
-function referenceStatus(value, reference) {
-  if (!numberUtils.isNumber(value) || !reference) return "none";
-  const numericValue = Math.abs(value);
-  const mean = Number(reference.mean);
-  const sd = Number(reference.sd ?? 0);
-  if (reference.direction === "lower") {
-    if (numericValue <= mean) return "none";
-    return numericValue >= mean + sd ? "fail" : "warning";
-  }
-  if (numericValue >= mean) return "none";
-  return numericValue <= mean - sd ? "fail" : "warning";
-}
-
-const referenceText = (reference) => {
-  if (!reference) return "–";
-  if (reference.minimum != null) return `≥ ${reference.minimum}`;
-  return `${reference.mean} ± ${reference.sd}`;
-};
-
-const hqWorkValue = (analysis, isEccentric) => {
-  const ext = Math.abs(analysis?.[212]);
-  const flex = Math.abs(analysis?.[213]);
-  return isEccentric
-    ? (flex ? (ext / flex) * 100 : NaN)
-    : (ext ? (flex / ext) * 100 : NaN);
-};
-
-const hqPeakValue = (analysis, isEccentric) => {
-  const quadriceps = Math.abs(analysis?.[isEccentric ? 111 : 110]);
-  const hamstrings = Math.abs(analysis?.[isEccentric ? 110 : 111]);
-  return quadriceps ? (hamstrings / quadriceps) * 100 : NaN;
-};
-
-export function reportRows(testKey, group, referenceSet, operated, allGroups = {}) {
-  const isEccentric = testKey === "eks30";
-  const isEndurance = testKey === "kons180";
-  const right = group?.right;
-  const left = group?.left;
-
-  // Indices describe movement direction, not the measured leg. Therefore the
-  // same index must always be used for right and left when calculating LSI.
-  const {quadriceps: quadricepsIndices, hamstrings: hamstringsIndices} = reportMetricIndices(testKey);
-
-  const definitionsFor = (indices, referenceSuffix) => isEndurance
-    ? [
-        ["Huippuvääntö (Nm)", indices.torque, `torque${referenceSuffix}`],
-        ["Työ keskimäärin (J)", indices.averageWork, `averageWork${referenceSuffix}`],
-        ["Kokonaistyö (J)", indices.totalWork, `work${referenceSuffix}`],
-      ]
-    : [
-        ["Huippuvääntö (Nm)", indices.torque, `torque${referenceSuffix}`],
-        ["Huippuvääntö (Nm / kg)", indices.bw, `bw${referenceSuffix}`],
-        ["Työ keskimäärin (J)", indices.averageWork, `averageWork${referenceSuffix}`],
-      ];
-
-  const makeSection = (title, definitions) => {
-    const rows = [{
-      cells: [{
-        content: title.toUpperCase(),
-        colSpan: 7,
-        styles: {
-          fontStyle: "bold",
-          fillColor: [250, 251, 252],
-          textColor: reportColors.ink,
-        },
-      }],
-      isSectionHeading: true,
-    }];
-    definitions.forEach(([label, index, referenceKey]) => {
-      const rightValue = right?.[index];
-      const leftValue = left?.[index];
-      const lsi = right && left ? symmetryPercent(rightValue, leftValue, operated) : "–";
-      const reference = metricReference(referenceSet, testKey, referenceKey);
-      rows.push({
-        cells: [label, getVal(right, index), "", getVal(left, index), lsi, referenceText(reference), ""],
-        rightStatus: referenceStatus(rightValue, reference),
-        leftStatus: referenceStatus(leftValue, reference),
-        symmetry: parseFloat(lsi),
-        hasReference: Boolean(reference),
-      });
-    });
-    return rows;
-  };
-  const rows = [
-    ...makeSection("Etureisi", definitionsFor(quadricepsIndices, "Ext")),
-    ...makeSection("Takareisi", definitionsFor(hamstringsIndices, "Flex")),
-  ];
-
-  if (isEccentric) {
-    const concentric240 = allGroups?.kons240;
-    const rightMixed = mixedRatio(right?.[hamstringsIndices.torque], concentric240?.right?.[110]);
-    const leftMixed = mixedRatio(left?.[hamstringsIndices.torque], concentric240?.left?.[110]);
-    rows.push({
-      cells: ["Mixed-ratio (%)", getVal({0: rightMixed}, 0), "", getVal({0: leftMixed}, 0), "–", "–", ""],
-      rightStatus: "none",
-      leftStatus: "none",
-      symmetry: null,
-      noBar: true,
-    });
-  } else if (right || left) {
-    const rightHq = isEndurance ? hqWorkValue(right, isEccentric) : hqPeakValue(right, isEccentric);
-    const leftHq = isEndurance ? hqWorkValue(left, isEccentric) : hqPeakValue(left, isEccentric);
-    const hqRef = metricReference(referenceSet, testKey, "hq");
-    rows.push({
-      cells: ["HQ-ratio (%)", getVal({0: rightHq}, 0), "", getVal({0: leftHq}, 0), "–", referenceText(hqRef), ""],
-      rightStatus: referenceStatus(rightHq, hqRef),
-      leftStatus: referenceStatus(leftHq, hqRef),
-      symmetry: null,
-      hasReference: Boolean(hqRef),
-      noBar: true,
-      isHq: true,
-    });
-  }
-  return rows;
+  pdf.setLineWidth(0.35);
+  pdf.line(posX, y - 0.3, posX, y + barHeight + 0.3);
 }
 
 function drawReferenceArrow(pdf, cell, status) {
@@ -285,42 +142,77 @@ function drawReferenceArrow(pdf, cell, status) {
 }
 
 function drawRowStatus(pdf, cell, row) {
+  if (row.noStatus) return;
   const hasSymmetry = numberUtils.isNumber(row.symmetry);
   const hasStatusBasis = row.hasReference || hasSymmetry;
-  const drawIcon = (icon, centerX) => {
+  const drawIcon = (status, centerX) => {
+    if (status === "warning") {
+      const middleY = cell.y + cell.height / 2;
+      pdf.setDrawColor(222, 126, 0);
+      pdf.setLineWidth(0.65);
+      pdf.line(centerX - 1.7, middleY, centerX - 0.35, middleY + 1.45);
+      pdf.line(centerX - 0.35, middleY + 1.45, centerX + 2.35, middleY - 1.65);
+      return;
+    }
     const size = 4.2;
+    const icon = status === "fail" ? crossIcon : tickIcon;
     pdf.addImage(icon, "PNG", centerX - size / 2, cell.y + cell.height / 2 - size / 2, size, size);
+  };
+
+  const statusFor = (referenceStatus, symmetryStatus = null) => {
+    if (referenceStatus === "fail" || symmetryStatus === "red") return "fail";
+    if (referenceStatus === "warning" || symmetryStatus === "orange") return "warning";
+    return "pass";
   };
 
   if (row.isHq) {
     if (!row.hasReference) return;
-    drawIcon(row.rightStatus === "fail" ? crossIcon : tickIcon, cell.x + cell.width / 2 - 3.2);
-    drawIcon(row.leftStatus === "fail" ? crossIcon : tickIcon, cell.x + cell.width / 2 + 3.2);
+    drawIcon(statusFor(row.referenceStatus), cell.x + cell.width / 2 - 3.2);
+    drawIcon(statusFor(row.involvedStatus), cell.x + cell.width / 2 + 3.2);
     return;
   }
   if (!hasStatusBasis) return;
-  const failed = row.rightStatus === "fail" || row.leftStatus === "fail" || (hasSymmetry && (row.symmetry < 90 || row.symmetry > 110));
-  drawIcon(failed ? crossIcon : tickIcon, cell.x + cell.width / 2);
+  const symmetryStatus = hasSymmetry ? symmetryStatusColor(row.symmetry) : null;
+  const status = statusFor(
+    row.referenceStatus === "fail" || row.involvedStatus === "fail" ? "fail" : row.referenceStatus === "warning" || row.involvedStatus === "warning" ? "warning" : "none",
+    symmetryStatus,
+  );
+  drawIcon(status, cell.x + cell.width / 2);
 }
 
-function renderReportTable(pdf, rows, startY, x = 10) {
+function maskRoundedTableCorners(pdf, x, y, width, height, radius = 2) {
+  const curve = radius * 0.5523;
+  pdf.setFillColor(255, 255, 255);
+  // Paint only the four areas outside the rounded outline; this removes the
+  // square grey header-fill pixels that AutoTable would otherwise leave there.
+  pdf.moveTo(x, y); pdf.lineTo(x + radius, y);
+  pdf.curveTo(x + radius - curve, y, x, y + radius - curve, x, y + radius); pdf.fill();
+  pdf.moveTo(x + width - radius, y); pdf.lineTo(x + width, y); pdf.lineTo(x + width, y + radius);
+  pdf.curveTo(x + width, y + radius - curve, x + width - radius + curve, y, x + width - radius, y); pdf.fill();
+  pdf.moveTo(x, y + height - radius); pdf.lineTo(x, y + height);
+  pdf.lineTo(x + radius, y + height); pdf.curveTo(x + radius - curve, y + height, x, y + height - radius + curve, x, y + height - radius); pdf.fill();
+  pdf.moveTo(x + width - radius, y + height); pdf.lineTo(x + width, y + height);
+  pdf.lineTo(x + width, y + height - radius); pdf.curveTo(x + width, y + height - radius + curve, x + width - radius + curve, y + height, x + width - radius, y + height); pdf.fill();
+}
+
+function renderReportTable(pdf, rows, startY, x = 10, framed = false) {
   autoTable(pdf, {
     startY,
     margin: {left: x},
-    head: [["Mittari", "Oikea", "", "Vasen", "Symmetria %", "Viitearvo\n(keskiarvo ± SD)", "Status"]],
+    head: [["Mittari", "Verrokkijalka / dominoiva jalka", "", "Oireinen / ei-dominantti jalka", "Symmetria %", "Viitearvo\n(keskiarvo ± SD)", "Status"]],
     body: rows.map((row) => row.cells ?? row),
     theme: "plain",
     tableWidth: 162,
     styles: {fontSize: 7.2, cellPadding: 0.55, lineColor: [255, 255, 255], lineWidth: 0, valign: "middle"},
     headStyles: {fillColor: [238, 238, 238], textColor: reportColors.ink, fontSize: 7.2, fontStyle: "bold", halign: "center", minCellHeight: 7},
     columnStyles: {
-      0: {cellWidth: 39, halign: "left"},
-      1: {cellWidth: 18, halign: "center"},
+      0: {cellWidth: 36, halign: "left"},
+      1: {cellWidth: 24, halign: "center"},
       2: {cellWidth: 22, halign: "center"},
-      3: {cellWidth: 18, halign: "center"},
-      4: {cellWidth: 18, halign: "center"},
-      5: {cellWidth: 29, halign: "center"},
-      6: {cellWidth: 18, halign: "center"},
+      3: {cellWidth: 24, halign: "center"},
+      4: {cellWidth: 15, halign: "center"},
+      5: {cellWidth: 25, halign: "center"},
+      6: {cellWidth: 16, halign: "center"},
     },
     didParseCell: (data) => {
       const row = rows[data.row.index];
@@ -335,9 +227,8 @@ function renderReportTable(pdf, rows, startY, x = 10) {
       }
       if (data.section === "body" && row && !row.isSectionHeading && data.column.index === 4 && numberUtils.isNumber(row.symmetry)) {
         const value = Number(row.symmetry);
-        data.cell.styles.textColor = value < 80 || value > 120
-          ? reportColors.fail
-          : value < 90 || value > 110 ? [222, 126, 0] : reportColors.pass;
+        const color = symmetryStatusColor(value);
+        data.cell.styles.textColor = color === "red" ? reportColors.fail : color === "orange" ? [222, 126, 0] : reportColors.pass;
       }
     },
     didDrawCell: (data) => {
@@ -354,14 +245,21 @@ function renderReportTable(pdf, rows, startY, x = 10) {
       }
     },
   });
-  return pdf.lastAutoTable.finalY;
+  const endY = pdf.lastAutoTable.finalY;
+  maskRoundedTableCorners(pdf, x, startY, 162, endY - startY, 2);
+  if (framed) {
+    pdf.setDrawColor(...reportColors.border);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(x, startY, 162, endY - startY + 1.5, 2, 2, "S");
+  }
+  return endY;
 }
 
 function drawReportLegend(pdf, y) {
   pdf.setFontSize(7);
   pdf.setTextColor(88, 98, 104);
-  pdf.text("LSI = oireileva jalka / verrokkijalka × 100. Alle 100 % = oireileva jalka on heikompi; yli 100 % = vahvempi.", 10, y);
-  pdf.text("Väripalkin musta viiva näyttää LSI-arvon yhteisellä asteikolla. Vihreä merkki = hyväksyttävä; punainen rasti = yli 10 % puoliero tai selvä viitearvopoikkeama.", 10, y + 4);
+  pdf.text(reportText(pdf, "LSI = oireileva jalka / verrokkijalka × 100. Alle 100 % = oireileva jalka on heikompi; yli 100 % = vahvempi."), 10, y);
+  pdf.text(reportText(pdf, "Väripalkin musta viiva näyttää LSI-arvon yhteisellä asteikolla. Vihreä merkki = hyväksyttävä; punainen rasti = yli 10 % puoliero tai selvä viitearvopoikkeama."), 10, y + 4);
   pdf.setTextColor(0);
 }
 
@@ -372,7 +270,7 @@ function renderReportCard(pdf, {title, key, test, referenceSet, operated, x, y})
   pdf.setTextColor(255);
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9.5);
-  pdf.text(title, x + 3, y + 5.4);
+  pdf.text(reportText(pdf, title), x + 3, y + 5.4);
   pdf.setTextColor(0);
 
   const endY = renderReportTable(
@@ -419,9 +317,11 @@ function svgToPng(svgElement) {
 
 function addAnalysisTable(pdf, group, patientInfo, testKey, allGroups) {
   const referenceSet = referenceValues[patientInfo.referenceValues] ?? null;
+  const involved = String(patientInfo.involvedSide ?? "").toLowerCase();
+  const operated = involved.includes("vasen") || involved.includes("left") ? "vasen" : involved.includes("oikea") || involved.includes("right") ? "oikea" : null;
   return renderReportTable(
     pdf,
-    reportRows(testKey, group, referenceSet, getSideHeaders(patientInfo.involvedSide).operated, allGroups),
+    reportRows(testKey, group, referenceSet, operated, allGroups),
     145,
   );
 }
@@ -433,26 +333,38 @@ function drawColorKey(pdf) {
   // Right leg (blue)
   pdf.setFillColor(...pdfColors.right);
   pdf.rect(20, 40, 4, 4, "F");
-  pdf.text("Oikea jalka", 26, 43.5);
+  pdf.text(reportText(pdf, "Oikea jalka"), 26, 43.5);
 
   // Left leg (red)
   pdf.setFillColor(...pdfColors.left);
   pdf.rect(20, 46, 4, 4, "F");
-  pdf.text("Vasen jalka", 26, 49.5);
+  pdf.text(reportText(pdf, "Vasen jalka"), 26, 49.5);
 }
 
 export async function generatePDF() {
   const pdf = new jsPDF({orientation: "portrait", unit: "mm", format: "a4"});
+  setReportLanguage(pdf);
+  // Capture both language and chart text before the first asynchronous image
+  // conversion so changing the UI language cannot produce a mixed-language PDF.
+  const chartSnapshots = Object.fromEntries(TESTS.map(({key}) => [key,
+    [...document.querySelectorAll(`#all-charts-export .test-charts[data-test-key="${key}"] svg`)]
+      .map((svg) => svg.cloneNode(true)),
+  ]));
   pdf.setFontSize(11);
   const files = parsedFileData();
   const sourcePatientInfo = files[0].rawObject.session;
+  const sourceMeasurement = files[0].rawObject.measurement ?? {};
   const profile = patientProfile();
+  const firstValue = (...values) => values.find((value) => value != null && String(value).trim() !== "");
   const patientInfo = {
     ...sourcePatientInfo,
-    subjectId: sourcePatientInfo.subjectId ?? sourcePatientInfo["subject id"] ?? sourcePatientInfo["subject ID"] ?? sourcePatientInfo.id,
+    subjectNameFirst: firstValue(sourcePatientInfo.subjectNameFirst, sourcePatientInfo["subject-name-first"], sourcePatientInfo["subject name first"]),
+    subjectName: firstValue(sourcePatientInfo.subjectName, sourcePatientInfo["subject-name"], sourcePatientInfo["subject name"]),
+    subjectId: firstValue(sourcePatientInfo.subjectId, sourcePatientInfo["subject-id"], sourcePatientInfo["subject id"], sourcePatientInfo["subject ID"], sourcePatientInfo.id, sourceMeasurement.subjectId, sourceMeasurement["subject-id"], sourceMeasurement["subject id"], sourceMeasurement.id),
     involvedSide: profile.involvedSide || sourcePatientInfo.involvedSide,
     subjectWeight: profile.weight || sourcePatientInfo.subjectWeight,
     additionalComment: profile.additionalComment || sourcePatientInfo.additionalComment,
+    referenceValues: profile.referenceValues || sourcePatientInfo.referenceValues,
   };
   // group analysis data by test type and side
   const groups = {};
@@ -488,7 +400,7 @@ export async function generatePDF() {
     pdf.setFont("Helvetica", "bold");
     pdf.setFontSize(10.5);
     pdf.setTextColor(...reportColors.ink);
-    pdf.text(title, 10, y);
+    pdf.text(reportText(pdf, title), 10, y);
     pdf.setTextColor(0);
     const tableStartY = y + 2;
     const endY = renderReportTable(
@@ -512,11 +424,11 @@ export async function generatePDF() {
   if (showMixedRatioOnSeparatePage && kons240 && eks30) {
     const leftData = {
       ext240: kons240.left?.[110],
-      flex30: eks30.left?.[111],
+      flex30: eks30.left?.[reportMetricIndices("eks30").hamstrings.torque],
     };
     const rightData = {
       ext240: kons240.right?.[110],
-      flex30: eks30.right?.[111],
+      flex30: eks30.right?.[reportMetricIndices("eks30").hamstrings.torque],
     };
 
     const hasLeft = leftData.ext240 != null && leftData.flex30 != null;
@@ -551,7 +463,7 @@ export async function generatePDF() {
     pdf.setTextColor(255);
     pdf.setFont("Helvetica", "bold");
     pdf.setFontSize(9.5);
-    pdf.text("Mixed ratio", 13, y + 9.4);
+    pdf.text(reportText(pdf, "Mixed ratio"), 13, y + 9.4);
     pdf.setTextColor(0);
     const endY = renderReportTable(pdf, mixedRows, y + 13, 10);
     pdf.setDrawColor(...reportColors.border);
@@ -565,14 +477,9 @@ export async function generatePDF() {
 
     if (!group || (!group.left && !group.right)) continue;
 
-    const container = document.querySelector(
-      `#all-charts-export .test-charts[data-test-key="${testDef.key}"]`,
-    );
-
     const pngs = [];
-    if (container) {
-      const svgs = container.querySelectorAll("svg");
-      for (const svg of svgs) {
+    {
+      for (const svg of chartSnapshots[testDef.key]) {
         const { dataUrl, width, height } = await svgToPng(svg);
         pngs.push({ dataUrl, width, height });
       }
@@ -584,33 +491,26 @@ export async function generatePDF() {
     pdf.setFont("Helvetica", "bold");
     pdf.setFontSize(14);
     pdf.setTextColor(...reportColors.ink);
-    pdf.text(testDef.title, 10, 55);
+    pdf.text(reportText(pdf, testDef.title), 10, 55);
     pdf.setFont("Helvetica", "normal");
     pdf.setFontSize(6.8);
     pdf.setTextColor(95, 105, 110);
-    pdf.text(pdf.splitTextToSize(DETAIL_PROTOCOLS[testDef.key], 188), 10, 61);
+    pdf.text(DETAIL_PROTOCOLS[testDef.key].map((line) => reportText(pdf, line)), 10, 61);
     pdf.setTextColor(0);
 
-    if (testDef.key === "kons180") {
-      pngs.slice(0, 2).forEach(({dataUrl}, index) => {
-        pdf.addImage(dataUrl, "PNG", 10 + index * 98, 70, 92, 51);
-      });
-      drawDetailedStatistics(pdf, testDef.key, group, files, 132, 10, 190);
-      pdf.setFontSize(5.8);
-      pdf.setTextColor(95, 105, 110);
-      pdf.text("* Työväsymisindeksi = 100 × (ensimmäisen kolmanneksen keskimääräinen työ − viimeisen kolmanneksen keskimääräinen työ) / ensimmäisen kolmanneksen työ.", 10, 190);
-      pdf.setTextColor(0);
-    } else {
-      pngs.slice(0, 2).forEach(({dataUrl}, index) => {
-        pdf.addImage(dataUrl, "PNG", 10 + index * 98, 70, 92, 51);
-      });
-      drawDetailedStatistics(pdf, testDef.key, group, files, 132, 108, 92);
-    }
-    const tableY = testDef.key === "kons180" ? 205 : 190;
+    pngs.slice(0, 2).forEach(({dataUrl}, index) => {
+      pdf.addImage(dataUrl, "PNG", 6 + index * 100, 67, 98, 62);
+    });
+
+    // One unified clinical table per detail page. The former small statistics
+    // table is intentionally merged under the relevant muscle heading here.
+    const tableY = 138;
     renderReportTable(
       pdf,
-      reportRows(testDef.key, group, referenceSet, operated, groups),
+      reportRows(testDef.key, group, referenceSet, operated, groups, {includeDetails: true}),
       tableY,
+      24,
+      true,
     );
   }
   const patientMeasurements = files[0].rawObject.measurement;
@@ -623,85 +523,4 @@ export async function generatePDF() {
   const filePrefix = (subjectId || [firstName, lastName].filter(Boolean).join("-") || "contrex-reporting")
     .replace(/[\\/:*?"<>|]/g, "-");
   pdf.save(`${filePrefix}_${formattedDate}.pdf`);
-}
-
-const metricNumber = (value) => numberUtils.isNumber(value)
-  ? padRoundDecimalsToLength(Math.abs(value), 3)
-  : "–";
-
-function rawEnduranceStats(files, side) {
-  const file = files.find((candidate) =>
-    String(candidate?.rawObject?.programType ?? "").includes("kons/kons 180/180") &&
-    candidate?.rawObject?.configuration?.side?.[1] === side,
-  );
-  const ext = file?.rawObject?.repetitions?.work1 ?? [];
-  const flex = file?.rawObject?.repetitions?.work2 ?? [];
-  const values = Array.from({length: Math.min(ext.length, flex.length)}, (_, index) =>
-    Math.abs(Number(ext[index]) || 0) + Math.abs(Number(flex[index]) || 0),
-  );
-  if (!values.length) return null;
-  const sum = (items) => items.reduce((total, value) => total + value, 0);
-  const first3 = sum(values.slice(0, 3));
-  const last3 = sum(values.slice(-3));
-  const thirdCount = Math.max(1, Math.floor(values.length / 3));
-  const firstThird = sum(values.slice(0, thirdCount)) / thirdCount;
-  const lastThird = sum(values.slice(-thirdCount)) / thirdCount;
-  return {
-    total: sum(values),
-    first3,
-    last3,
-    fatigue: firstThird ? ((firstThird - lastThird) / firstThird) * 100 : NaN,
-  };
-}
-
-function drawDetailedStatistics(pdf, testKey, group, files, startY, x = 108, width = 92) {
-  const isEccentric = testKey === "eks30";
-  const quadriceps = isEccentric
-    ? {at200: 121, peakAngle: 115}
-    : {at200: 120, peakAngle: 114};
-  const hamstrings = isEccentric
-    ? {at200: 120, peakAngle: 114}
-    : {at200: 121, peakAngle: 115};
-  const right = group?.right;
-  const left = group?.left;
-  const rows = [
-    ["Mittari", "Oikea", "Vasen"],
-    ["ETUREISI", "", ""],
-    ["Vääntö 0,2 s kohdalla (Nm)", metricNumber(right?.[quadriceps.at200]), metricNumber(left?.[quadriceps.at200])],
-    ["Kulma huippuväännössä (°)", metricNumber(right?.[quadriceps.peakAngle]), metricNumber(left?.[quadriceps.peakAngle])],
-    ["TAKAREISI", "", ""],
-    ["Vääntö 0,2 s kohdalla (Nm)", metricNumber(right?.[hamstrings.at200]), metricNumber(left?.[hamstrings.at200])],
-    ["Kulma huippuväännössä (°)", metricNumber(right?.[hamstrings.peakAngle]), metricNumber(left?.[hamstrings.peakAngle])],
-  ];
-
-  if (testKey === "kons180") {
-    const rightEndurance = rawEnduranceStats(files, "right");
-    const leftEndurance = rawEnduranceStats(files, "left");
-    rows.push(
-      ["Kokonaistyö: ojennus + koukistus [J]", metricNumber(rightEndurance?.total), metricNumber(leftEndurance?.total)],
-      ["Työväsymisindeksi* [%]", metricNumber(rightEndurance?.fatigue), metricNumber(leftEndurance?.fatigue)],
-    );
-  }
-
-  autoTable(pdf, {
-    startY,
-    margin: {left: x},
-    tableWidth: width,
-    body: rows,
-    theme: "plain",
-    styles: {fontSize: 5.8, cellPadding: 0.6, lineColor: reportColors.border, lineWidth: 0.15, valign: "middle"},
-    columnStyles: {0: {cellWidth: width * 0.63}, 1: {cellWidth: width * 0.185, halign: "center"}, 2: {cellWidth: width * 0.185, halign: "center"}},
-    didParseCell: (data) => {
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = [238, 238, 238];
-        data.cell.styles.fontStyle = "bold";
-        data.cell.styles.halign = data.column.index === 0 ? "left" : "center";
-      }
-      if (data.row.index === 1 || data.row.index === 4) {
-        data.cell.styles.fontStyle = "bold";
-        data.cell.styles.textColor = reportColors.ink;
-      }
-    },
-  });
-  return pdf.lastAutoTable.finalY;
 }

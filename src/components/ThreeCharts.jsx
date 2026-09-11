@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import { batch, createSignal, ErrorBoundary, mergeProps } from "solid-js";
 import {
   ChartBorder,
@@ -16,7 +17,7 @@ import { asserts } from "../collections/collections.js";
 import { $hoveredRepetition } from "../signals.js";
 export function ThreeCharts(props) {
   return (
-    <ErrorBoundary fallback="Three chart rendering failed">
+    <ErrorBoundary fallback={t("Kuvaajan piirtäminen epäonnistui")}>
       <Chart {...props} />
     </ErrorBoundary>
   );
@@ -68,7 +69,7 @@ function Chart(props) {
                       borderArea={borderArea}
                       lineArea={lineArea}
                       mouseArea={mouseArea}
-                      title="Vääntö"
+                      title={t("Vääntö")}
                       yUnit="[Nm]"
                       points={props.parsedCTM.pointCollections.power.points}
                       maxValue={props.parsedCTM.pointCollections.power.maxValue}
@@ -84,8 +85,8 @@ function Chart(props) {
                       borderArea={borderArea}
                       lineArea={lineArea}
                       mouseArea={mouseArea}
-                      title="Nopeus"
-                      yUnit="[aste/s]"
+                      title={t("Nopeus")}
+                      yUnit={t("[aste/s]")}
                       points={props.parsedCTM.pointCollections.speed.points}
                       maxValue={props.parsedCTM.pointCollections.speed.maxValue}
                       minValue={props.parsedCTM.pointCollections.speed.minValue}
@@ -100,8 +101,8 @@ function Chart(props) {
                       borderArea={borderArea}
                       lineArea={lineArea}
                       mouseArea={mouseArea}
-                      title="Kulma"
-                      yUnit="[aste]"
+                      title={t("Kulma")}
+                      yUnit={t("[aste]")}
                       points={props.parsedCTM.pointCollections.angle.points}
                       maxValue={props.parsedCTM.pointCollections.angle.maxValue}
                       minValue={props.parsedCTM.pointCollections.angle.minValue}
@@ -156,7 +157,7 @@ function Chart(props) {
           position="bottom"
           {...props.borderArea}
           y={props.borderArea.y + 20}
-          title="Aika [s]"
+          title={t("Aika [s]")}
         />
         <ChartHorizontalZeroLine
           {...props.lineArea}
@@ -229,7 +230,7 @@ function CircleChart(props) {
   };
 
   return (
-    <ErrorBoundary fallback="Circle chart error">
+    <ErrorBoundary fallback={t("Toistokuvaajan piirtäminen epäonnistui")}>
       <svg width={svgArea.width} height={svgArea.height}>
         <ChartPadding
           name="border"
@@ -250,7 +251,7 @@ function CircleChart(props) {
               >
                 [Nm]
               </text>
-              <ChartText position="top" {...borderArea} title="Vääntötoistot" />
+              <ChartText position="top" {...borderArea} title={t("Vääntötoistot")} />
               <ChartPadding name="lines" {...borderArea} padding={15}>
                 {(lineArea) => (
                   <>
