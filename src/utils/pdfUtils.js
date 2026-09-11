@@ -146,15 +146,18 @@ function drawRowStatus(pdf, cell, row) {
   const hasSymmetry = numberUtils.isNumber(row.symmetry);
   const hasStatusBasis = row.hasReference || hasSymmetry;
   const drawIcon = (status, centerX) => {
+    // Keep every status mark inside the same visual box. The raster icons
+    // used for pass/fail have a little transparent padding; the warning tick
+    // is drawn as vector geometry with matching visible proportions.
+    const size = 4.2;
+    const middleY = cell.y + cell.height / 2;
     if (status === "warning") {
-      const middleY = cell.y + cell.height / 2;
       pdf.setDrawColor(222, 126, 0);
-      pdf.setLineWidth(0.65);
-      pdf.line(centerX - 1.7, middleY, centerX - 0.35, middleY + 1.45);
-      pdf.line(centerX - 0.35, middleY + 1.45, centerX + 2.35, middleY - 1.65);
+      pdf.setLineWidth(0.58);
+      pdf.line(centerX - 1.35, middleY - 0.05, centerX - 0.40, middleY + 0.95);
+      pdf.line(centerX - 0.40, middleY + 0.95, centerX + 1.50, middleY - 1.05);
       return;
     }
-    const size = 4.2;
     const icon = status === "fail" ? crossIcon : tickIcon;
     pdf.addImage(icon, "PNG", centerX - size / 2, cell.y + cell.height / 2 - size / 2, size, size);
   };
