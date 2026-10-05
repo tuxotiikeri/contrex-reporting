@@ -134,7 +134,7 @@ function Chart(props) {
         <ChartPadding
           name="border"
           {...svgArea}
-          paddingLeft={70}
+          paddingLeft={30}
           paddingRight={25}
           paddingBottom={60}
           paddingTop={78}
@@ -142,7 +142,7 @@ function Chart(props) {
           {(borderArea) => (
             <>
               <ChartText position="top" {...borderArea} y={27} title={props.title} fontSize="18" fontWeight="700" />
-              <ChartLegend x={90} y={53} includeLSI />
+              <ChartLegend centerX={svgArea.width / 2} y={53} series={displayFiles().map(file => ({side: file.legSide, color: file.baseColor}))} includeLSI={Boolean(lsiData())} />
               <ChartPadding name="lines" {...borderArea} padding={15}>
                 {(lineArea) => (
                   <>
@@ -172,6 +172,7 @@ function Chart(props) {
                     />
                     <ChartYAxisFloor
                       {...borderArea}
+                      x={lineArea.x}
                       startValue={combinedValues().maxValue}
                       endValue={combinedValues().minValue}
                       y={lineArea.y}
@@ -253,7 +254,7 @@ function Chart(props) {
                               const total = lsi().endIndex;
                               const start = cluster.startIndex / total;
                               const end = cluster.endIndex / total;
-                              return <rect x={lineArea.x + start * lineArea.width} y={lineArea.y + lineArea.height + 4} width={Math.max(2, (end - start) * lineArea.width)} height="8" fill="black" />;
+                              return <rect x={lineArea.x + start * lineArea.width} y={lineArea.y + lineArea.height + 4} width={Math.max(2, (end - start) * lineArea.width)} height="4" fill="black" />;
                             }}
                           </For>
                         )}

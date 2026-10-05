@@ -20,11 +20,18 @@ const reportColors = {
   fail: [205, 45, 48],
 };
 
+function drawLabelValue(pdf, label, value, x, y) {
+  pdf.setFont("Helvetica", "bold");
+  pdf.text(label, x, y);
+  const valueX = x + pdf.getTextWidth(label) + 1.2;
+  pdf.setFont("Helvetica", "normal");
+  pdf.text(String(value), valueX, y);
+}
+
 function addPatientInfo(pdf, patientInfo, files) {
   const involved = String(patientInfo.involvedSide ?? "").includes("vasen") ? "Vasen" : String(patientInfo.involvedSide ?? "").includes("oikea") ? "Oikea" : "–";
   const subjectName = [patientInfo.subjectNameFirst, patientInfo.subjectName].filter(Boolean).join(" ");
   const subjectId = patientInfo.subjectId ?? patientInfo["subject-id"] ?? patientInfo["subject id"] ?? patientInfo.subjectID;
-  const subjectLabel = `${reportText(pdf, subjectName ? "Nimi" : "ID")}: ${subjectName || subjectId || "–"}`;
   const date = files[0]?.rawObject?.measurement?.["date(dd/mm/yyyy)"] ?? "–";
   const comment = String(patientInfo.additionalComment || "–");
 
@@ -33,26 +40,28 @@ function addPatientInfo(pdf, patientInfo, files) {
   pdf.setTextColor(...reportColors.ink);
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(13);
-  pdf.text(reportText(pdf, "Metropolia liikelaboratorio"), 10, 19);
+  const brand = "Metropolia";
+  pdf.setTextColor(...reportColors.accent);
+  pdf.text(brand, 10, 19);
+  const brandEnd = 10 + pdf.getTextWidth(`${brand} `);
+  pdf.setTextColor(...reportColors.ink);
+  pdf.text(reportText(pdf, "Metropolia liikelaboratorio").replace(/^Metropolia\s*/, ""), brandEnd, 19);
   pdf.setFontSize(8.5);
-  pdf.text(reportText(pdf, "Isokineettinen polven ojennus- ja koukistusvoimamittaus"), 10, 25);
-  pdf.setFont("Helvetica", "normal");
-  pdf.setFontSize(7.5);
-  pdf.text(reportText(pdf, "CON-TREX MultiJoint -laitteella"), 10, 30);
+  pdf.text(reportText(pdf, "Isokineettinen polven ojennus- ja koukistusvoimaraportti"), 10, 25);
+  pdf.text("CON-TREX MultiJoint", 10, 29.5);
   pdf.setFillColor(...reportColors.pale);
   pdf.setDrawColor(...reportColors.border);
   pdf.roundedRect(126, 14, 74, 29, 2, 2, "FD");
   pdf.setTextColor(...reportColors.ink);
   pdf.setFontSize(6.6);
-  pdf.setFont("Helvetica", "bold");
-  pdf.text(`${reportText(pdf, "Testi pvm")}: ${date}`, 130, 19.5);
-  pdf.text(reportText(pdf, subjectLabel), 130, 25.5);
-  pdf.text(`${reportText(pdf, "Kehonpaino")}: ${patientInfo.subjectWeight ?? "–"} kg`, 130, 31.5);
-  pdf.text(`${reportText(pdf, "Oireinen jalka")}: ${reportText(pdf, involved)}`, 130, 37.5);
+  drawLabelValue(pdf, `${reportText(pdf, "Testi pvm")}:`, date, 130, 19.5);
+  drawLabelValue(pdf, `${reportText(pdf, subjectName ? "Nimi" : "ID")}:`, subjectName || subjectId || "–", 130, 25.5);
+  drawLabelValue(pdf, `${reportText(pdf, "Kehonpaino")}:`, `${patientInfo.subjectWeight ?? "–"} kg`, 130, 31.5);
+  drawLabelValue(pdf, `${reportText(pdf, "Oireinen jalka")}:`, reportText(pdf, involved), 130, 37.5);
   pdf.setFont("Helvetica", "normal");
   pdf.setFontSize(6.8);
   pdf.setTextColor(95, 105, 110);
-  pdf.text(reportText(pdf, "Myllypurontie 1, 00920 | liikelaboratorio@metropolia.fi"), 10, 36);
+  pdf.text(reportText(pdf, "Myllypurontie 1, 00920 | liikelaboratorio@metropolia.fi"), 10, 34);
   if (comment && comment !== "–") pdf.text(`${reportText(pdf, "Lisäkommentti")}: ${comment}`, 10, 41);
   pdf.setTextColor(0);
 }
@@ -499,11 +508,15 @@ export async function generatePDF() {
     pdf.setFont("Helvetica", "normal");
     pdf.setFontSize(7.5);
     pdf.setTextColor(95, 105, 110);
-    pdf.text(DETAIL_PROTOCOLS[testDef.key].map((line) => reportText(pdf, line)), 10, 61);
+    DETAIL_PROTOCOLS[testDef.key].forEach((line, index) => {
+      const translated = reportText(pdf, line);
+      const colon = translated.indexOf(":");
+      drawLabelValue(pdf, translated.slice(0, colon + 1), translated.slice(colon + 1).trim(), 10, 63 + index * 5);
+    });
     pdf.setTextColor(0);
 
     pngs.slice(0, 2).forEach(({dataUrl, width, height}, index) => {
-      pdf.addImage(dataUrl, "PNG", 6 + index * 100, 78, 98, 98 * height / width);
+      pdf.addImage(dataUrl, "PNG", index * 105, 80, 105, 105 * height / width);
     });
 
     // One unified clinical table per detail page. The former small statistics

@@ -1,21 +1,31 @@
-import { Show } from "solid-js";
+import { For, createMemo } from "solid-js";
 import { t } from "../i18n/index.js";
 
 // Shared legend for the interactive view and the SVGs captured into the PDF.
-// The colours intentionally stay constant: green is right, red is left.
+// Use the plotted series colours, including repeated same-side measurements.
 export function ChartLegend(props) {
-  const x = props.x ?? 0;
   const y = props.y ?? 0;
+  const entries = createMemo(() => {
+    const series = (props.series ?? [{side: "right", color: "#159447"}, {side: "left", color: "#d33434"}])
+      .map(entry => ({label: entry.label ?? t(entry.side === "right" ? "Oikea" : "Vasen"), color: entry.color}));
+    if (props.includeLSI) series.push({label: t("LSI yli 10 %"), lsi: true, color: "black"});
+    let offset = 0;
+    return series.map(entry => {
+      const item = {...entry, offset, width: 30 + entry.label.length * 7};
+      offset += item.width;
+      return item;
+    });
+  });
+  const width = () => entries().reduce((sum, item) => sum + item.width, 0) - 10;
+  const x = () => props.centerX != null ? props.centerX - width() / 2 : props.x ?? 0;
   return (
     <g font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#2A3940" aria-label="Chart legend">
-      <circle cx={x} cy={y} r="3" fill="#159447" />
-      <text x={x + 7} y={y + 3.2}>{t("Oikea")}</text>
-      <circle cx={x + 65} cy={y} r="3" fill="#d33434" />
-      <text x={x + 72} y={y + 3.2}>{t("Vasen")}</text>
-      <Show when={props.includeLSI}>
-        <rect x={x + 130} y={y - 2.5} width="9" height="5" fill="black" />
-        <text x={x + 145} y={y + 3.2}>{t("LSI yli 10 %")}</text>
-      </Show>
+      <For each={entries()}>{entry => <g>
+        {entry.lsi
+          ? <rect x={x() + entry.offset} y={y - 2.5} width="14" height="5" fill="black" />
+          : <line x1={x() + entry.offset} x2={x() + entry.offset + 14} y1={y} y2={y} stroke={entry.color} stroke-width="2" />}
+        <text x={x() + entry.offset + 20} y={y + 3.2}>{entry.label}</text>
+      </g>}</For>
     </g>
   );
 }
