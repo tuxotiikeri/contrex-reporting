@@ -17,6 +17,7 @@ import { parsedFileData } from "../signals.js";
 import { resolveComparisonSides } from "../utils/comparisonSides.js";
 import { muscleCurveDirections, reportMetricIndices } from "../utils/reportMetricDefinitions.js";
 import { ChartLegend } from "./ChartLegend.jsx";
+import { createTorqueDisplay } from "../utils/torqueDisplay.js";
 
 export function AverageChart(props) {
   return (
@@ -71,8 +72,18 @@ function Chart(props) {
     const errorAverageKey = createMemo(() => `averagePower${props.type}Error`);
     const averageKey = createMemo(() => `averagePower${props.type}`);
 
+    const displayFiles = createMemo(() => props.listOfParsedCTM().map(file => {
+      const display = createTorqueDisplay(file.rawObject, props.type);
+      return {...file, display, rawObject: {...file.rawObject,
+        pointCollections: {...file.rawObject.pointCollections,
+          [averageKey()]: {points: display.points},
+          [errorAverageKey()]: {points: display.error}},
+        splitCollections: {...file.rawObject.splitCollections,
+          [averageKey()]: display.split}}};
+    }));
+
     const combinedValues = createMemo(() => {
-      const files = props.listOfParsedCTM();
+      const files = displayFiles();
       const peakQuadriceps = Math.max(
         ...files.map(({rawObject}) => Math.abs(Number(rawObject.analysis?.[reportMetricIndices(rawObject).quadriceps.torque])) || 0),
       );
@@ -85,12 +96,12 @@ function Chart(props) {
     });
 
     const colors = createMemo(() =>
-      props.listOfParsedCTM().map((file) => file.baseColor),
+      displayFiles().map((file) => file.baseColor),
     );
 
     const lsiData = createMemo(() => {
       const filesBySide = Object.fromEntries(
-        props.listOfParsedCTM().map((file) => [file.legSide, file]),
+        displayFiles().map((file) => [file.legSide, file]),
       );
       const left = filesBySide.left;
       const right = filesBySide.right;
@@ -109,7 +120,8 @@ function Chart(props) {
       const lsiAt = (index) => {
         const involved = involvedSide === "left" ? leftPoints[index] : rightPoints[index];
         const nonInvolved = involvedSide === "left" ? rightPoints[index] : leftPoints[index];
-        return nonInvolved ? (involved / nonInvolved) * 100 : 0;
+        return left.display.active[index] && right.display.active[index] && nonInvolved > 0 && involved > 0
+          ? (involved / nonInvolved) * 100 : NaN;
       };
       const points = Array.from({ length }, (_, index) =>
         Math.abs(leftPoints[index] - rightPoints[index]),
@@ -117,7 +129,8 @@ function Chart(props) {
       const clusters = [];
       let clusterStart = null;
       for (let index = 0; index < length; index++) {
-        const exceedsThreshold = Math.abs(lsiAt(index) - 100) > 10;
+        const lsi = lsiAt(index);
+        const exceedsThreshold = Number.isFinite(lsi) && Math.abs(lsi - 100) > 10;
         if (exceedsThreshold && clusterStart === null) clusterStart = index;
         if (!exceedsThreshold && clusterStart !== null) {
           clusters.push({ startIndex: clusterStart, endIndex: index - 1 });
@@ -132,7 +145,7 @@ function Chart(props) {
         clusters,
         label: (difference, index) => {
           const lsi = lsiAt(index);
-          return `${Math.round(lsi)} % (${Math.round(difference)} Nm)`;
+          return Number.isFinite(lsi) ? `${Math.round(lsi)} % (${Math.round(difference)} Nm)` : "–";
         },
       };
     });
@@ -195,7 +208,7 @@ function Chart(props) {
                     <line x1={lineArea.x} x2={lineArea.x + lineArea.width} y1={lineArea.y + lineArea.height} y2={lineArea.y + lineArea.height} stroke="black" />
                     <Show when={props.errorBands}>
                       <g data-error-bands>
-                        <For each={props.listOfParsedCTM()}>
+                        <For each={displayFiles()}>
                           {(parsedData, fileIndex) => (
                             <ChartErrorBands
                               points={
@@ -228,7 +241,7 @@ function Chart(props) {
                       </g>
                     </Show>
                     <g data-lines>
-                      <For each={props.listOfParsedCTM()}>
+                      <For each={displayFiles()}>
                         {(parsedData) => (
                           <ChartPath
                             points={
@@ -279,7 +292,7 @@ function Chart(props) {
                     >
                       {(mouseArea) => (
                         <>
-                          <For each={props.listOfParsedCTM()}>
+                          <For each={displayFiles()}>
                             {(parsedData, fileIndex) => (
                               <ChartHoverPoint
                                 points={
