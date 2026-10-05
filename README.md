@@ -117,6 +117,6 @@ The movement-to-muscle mapping is defined in `src/utils/reportMetricDefinitions.
 
 ## More
 
-The original user manual is in Finnish and is located in the project root as [userManual.md](userManual.md). It describes the student version and does not yet cover all features added to Contrex Reporting.
+The user manual is in Finnish and is located in the project root as [userManual.md](userManual.md). It covers the current application, data processing, reference values, symmetry colours, and PDF reports.
 
 
