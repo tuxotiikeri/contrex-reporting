@@ -4,6 +4,7 @@
 import {render} from "solid-js/web";
 import {createEffect, createSignal} from "solid-js";
 import {HiddenCharts} from "../../src/components/HiddenCharts.jsx";
+import {AverageChart} from "../../src/components/AverageChart.jsx";
 import {LanguageSelector} from "../../src/components/LanguageSelector.jsx";
 import {setParsedFileData, setPatientProfile} from "../../src/signals.js";
 import {generatePDF} from "../../src/utils/pdfUtils.js";
@@ -24,12 +25,15 @@ function makeFile(key, programType, name, side) {
   const flex = (isEccentric ? -230 : -120) * factor;
   const points = (value) => Array.from({length: 91}, (_, i) => value * (0.8 + i / 500));
   const pointCollections = {
+    angle: {points: Array.from({length: 182}, (_, i) => -(i < 91 ? 86.7 - i * 80.2 / 90 : 6.5 + (i - 91) * 80.2 / 90))},
+    power: {points: [...points(ext).reverse(), ...points(flex)]},
     averagePowerExt: {points: points(ext)},
     averagePowerFlex: {points: points(flex)},
     averagePowerExtError: {points: [points(ext * 0.94), points(ext * 1.06)]},
     averagePowerFlexError: {points: [points(flex * 0.94), points(flex * 1.06)]},
   };
   const splitCollections = {
+    movement: {splits: [{color: "red", startIndex: 0, endIndex: 90}, {color: "blue", startIndex: 91, endIndex: 181}]},
     averagePowerExt: {startIndex: 0, endIndex: 90, splits: [{startIndex: 0, endIndex: 90}]},
     averagePowerFlex: {startIndex: 0, endIndex: 90, splits: [{startIndex: 0, endIndex: 90}]},
   };
@@ -38,11 +42,12 @@ function makeFile(key, programType, name, side) {
     measurementType: programType,
     baseColor: side === "right" ? "#159447" : "#d33434",
     rawObject: {
-      programType, pointCollections, splitCollections,
+      programType, pointCollections, splitCollections, setUp: {mov1: -6.5, mov2: -86.7},
       analysis: {
         110: ext, 111: flex, 112: ext * 0.95, 113: flex * 0.95,
         114: 65, 115: 42, 120: ext * 0.85, 121: flex * 0.85,
         122: ext * 1.1, 123: Math.abs(flex) * 0.85,
+        130: 1.2 * factor, 131: 0.8 * factor, 260: 2.4, 261: 3.2,
         203: ext / 75, 204: flex / 75, 212: ext * 4, 213: Math.abs(flex) * 3,
       },
       repetitions: {work1: Array.from({length: 20}, (_, i) => ext * (1 - i / 90)), work2: Array.from({length: 20}, (_, i) => Math.abs(flex) * (1 - i / 95))},
@@ -71,4 +76,5 @@ render(() => <main class="p-6">
   <output class="ml-3">{status()}</output>
   <p>Expected first-page order: left reference, symmetry bar, right involved. The black marker is right of centre.</p>
   <HiddenCharts />
+  <AverageChart listOfParsedCTM={() => files.filter(f => f.measurementType === "kons/kons 60/60")} errorBands={true} />
 </main>, document.getElementById("root"));

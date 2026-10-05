@@ -1,3 +1,5 @@
+import {muscleCurveDirections} from "./reportMetricDefinitions.js";
+
 // Presentation only: never feed these curves back into repetition statistics.
 export function createTorqueDisplay(rawObject, direction, step = 0.1) {
   const endIndex = Math.round(90 / step);
@@ -42,4 +44,46 @@ export function createTorqueDisplay(rawObject, direction, step = 0.1) {
     angle > c.bounds[0] && angle < c.bounds[1]));
   return {points, error: [lower, upper], active,
     split: {startIndex: 0, endIndex, splits: [{color, startIndex: 0, endIndex}]}};
+}
+
+export function createHQDisplay(rawObject) {
+  const directions = muscleCurveDirections(rawObject);
+  const q = createTorqueDisplay(rawObject, directions.quadriceps);
+  const h = createTorqueDisplay(rawObject, directions.hamstrings);
+  const active = q.points.map((value, i) => q.active[i] && h.active[i]
+    && value > 0 && h.points[i] > 0 && h.points[i] / value <= 2);
+  const points = q.points.map((value, i) => active[i] ? h.points[i] / value : 0);
+  const splits = [];
+  let start = null;
+  for (let i = 0; i <= points.length; i++) {
+    if (active[i] && start === null) start = i;
+    if (!active[i] && start !== null) {
+      splits.push({startIndex: start, endIndex: i - 1});
+      start = null;
+    }
+  }
+  return {points, active, split: {...q.split, splits}};
+}
+
+// Both series must share the same angle grid. A short edge mismatch is not
+// drawn as a cluster; a sustained difference may continue to either ROM end.
+export function createLsiDisplay(involved, reference, step = 0.1, minimumWidth = 5) {
+  const length = Math.min(involved.points.length, reference.points.length);
+  const percentages = Array.from({length}, (_, i) => involved.active[i]
+    && reference.active[i] && involved.points[i] > 0 && reference.points[i] > 0
+    ? involved.points[i] / reference.points[i] * 100 : NaN);
+  const clusters = [];
+  let start = null;
+  for (let i = 0; i <= length; i++) {
+    const exceeds = Number.isFinite(percentages[i]) && Math.abs(percentages[i] - 100) > 10;
+    if (exceeds && start === null) start = i;
+    if (!exceeds && start !== null) {
+      if ((i - 1 - start) * step >= minimumWidth - 1e-9) {
+        clusters.push({startIndex: start, endIndex: i - 1});
+      }
+      start = null;
+    }
+  }
+  return {percentages, clusters, startIndex: 0, endIndex: length - 1,
+    points: percentages.map((_, i) => Math.abs(involved.points[i] - reference.points[i]))};
 }

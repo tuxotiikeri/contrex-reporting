@@ -224,6 +224,7 @@ export function ChartHoverPoint(props) {
       Math.round(props.mouseXPercentage * (props.endIndex - props.startIndex));
     const value = props.points[index];
     if (!numberUtils.isNumber(value)) return null;
+    if (props.minHoverValue != null && value < props.minHoverValue) return null;
     if (props.maxHoverValue != null && value > props.maxHoverValue) return null;
 
     return {

@@ -24,9 +24,7 @@ function addPatientInfo(pdf, patientInfo, files) {
   const involved = String(patientInfo.involvedSide ?? "").includes("vasen") ? "Vasen" : String(patientInfo.involvedSide ?? "").includes("oikea") ? "Oikea" : "–";
   const subjectName = [patientInfo.subjectNameFirst, patientInfo.subjectName].filter(Boolean).join(" ");
   const subjectId = patientInfo.subjectId ?? patientInfo["subject-id"] ?? patientInfo["subject id"] ?? patientInfo.subjectID;
-  // The header is deliberately labelled ID in every case: a name is the most
-  // useful human identifier when it exists; anonymous CTM exports use subject ID.
-  const subjectLabel = `${reportText(pdf, "ID")}: ${subjectName || subjectId || "–"}`;
+  const subjectLabel = `${reportText(pdf, subjectName ? "Nimi" : "ID")}: ${subjectName || subjectId || "–"}`;
   const date = files[0]?.rawObject?.measurement?.["date(dd/mm/yyyy)"] ?? "–";
   const comment = String(patientInfo.additionalComment || "–");
 
@@ -38,6 +36,9 @@ function addPatientInfo(pdf, patientInfo, files) {
   pdf.text(reportText(pdf, "Metropolia liikelaboratorio"), 10, 19);
   pdf.setFontSize(8.5);
   pdf.text(reportText(pdf, "Isokineettinen polven ojennus- ja koukistusvoimamittaus"), 10, 25);
+  pdf.setFont("Helvetica", "normal");
+  pdf.setFontSize(7.5);
+  pdf.text(reportText(pdf, "CON-TREX MultiJoint -laitteella"), 10, 30);
   pdf.setFillColor(...reportColors.pale);
   pdf.setDrawColor(...reportColors.border);
   pdf.roundedRect(126, 14, 74, 29, 2, 2, "FD");
@@ -106,10 +107,10 @@ const TESTS = [
 ];
 
 const DETAIL_PROTOCOLS = {
-  kons60: ["Konsentrinen 60°/s, 3 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
-  kons240: ["Konsentrinen 240°/s, 3 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
-  eks30: ["Eksentrinen 30°/s, 2 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
-  kons180: ["Konsentrinen 180°/s, 20 toistoa", "Tila: isokineettinen ballistinen", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  kons60: ["Mittaus: konsentrinen 60°/s, 3 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  kons240: ["Mittaus: konsentrinen 240°/s, 3 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  eks30: ["Mittaus: eksentrinen 30°/s, 2 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  kons180: ["Mittaus: konsentrinen 180°/s, 20 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
 };
 
 const pdfColors = {
@@ -496,23 +497,23 @@ export async function generatePDF() {
     pdf.setTextColor(...reportColors.ink);
     pdf.text(reportText(pdf, testDef.title), 10, 55);
     pdf.setFont("Helvetica", "normal");
-    pdf.setFontSize(6.8);
+    pdf.setFontSize(7.5);
     pdf.setTextColor(95, 105, 110);
     pdf.text(DETAIL_PROTOCOLS[testDef.key].map((line) => reportText(pdf, line)), 10, 61);
     pdf.setTextColor(0);
 
-    pngs.slice(0, 2).forEach(({dataUrl}, index) => {
-      pdf.addImage(dataUrl, "PNG", 6 + index * 100, 67, 98, 62);
+    pngs.slice(0, 2).forEach(({dataUrl, width, height}, index) => {
+      pdf.addImage(dataUrl, "PNG", 6 + index * 100, 78, 98, 98 * height / width);
     });
 
     // One unified clinical table per detail page. The former small statistics
     // table is intentionally merged under the relevant muscle heading here.
-    const tableY = 138;
+    const tableY = 161;
     renderReportTable(
       pdf,
       reportRows(testDef.key, group, referenceSet, operated, groups, {includeDetails: true}),
       tableY,
-      24,
+      10,
       true,
     );
   }

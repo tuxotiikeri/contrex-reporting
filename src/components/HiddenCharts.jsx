@@ -50,7 +50,7 @@ export function HiddenCharts() {
             >
               <Show
                 when={group.key === "kons/kons 180/180"}
-                fallback={<AverageChart listOfParsedCTM={() => group.files} errorBands={true} showHQ={false} svgWidth={450} svgHeight={250} />}
+                fallback={<AverageChart listOfParsedCTM={() => group.files} errorBands={true} showHQ={false} svgWidth={450} svgHeight={320} />}
               >
                 <EnduranceWorkCharts listOfParsedCTM={() => group.files} />
               </Show>

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createTorqueDisplay} from "../src/utils/torqueDisplay.js";
+import {createTorqueDisplay, createHQDisplay, createLsiDisplay} from "../src/utils/torqueDisplay.js";
 
 test("display uses actual angles and zero movement boundaries without mutating analysis", () => {
   const raw = {setUp: {mov1: -6.5, mov2: -86.7},
@@ -19,6 +19,34 @@ test("display uses actual angles and zero movement boundaries without mutating a
   assert.equal(display.active[0], false);
   assert.equal(display.active[500], true);
   assert.deepEqual(raw, original);
+});
+
+test("LSI ignores narrow clusters but keeps a sustained cluster ending at ROM", () => {
+  const reference = {points: Array(901).fill(100), active: Array(901).fill(true)};
+  const involved = structuredClone(reference);
+  involved.points.fill(130, 65, 85); // 1.9 degrees
+  involved.points.fill(130, 700, 868); // sustained to the ROM boundary
+  involved.active.fill(false, 868);
+  const display = createLsiDisplay(involved, reference);
+  assert.deepEqual(display.clusters, [{startIndex: 700, endIndex: 867}]);
+  assert.ok(Number.isNaN(display.percentages[870]));
+});
+
+test("HQ uses real angles, handles eccentric muscle mapping, and gaps values above 2", () => {
+  const raw = {setUp: {mov1: -6.5, mov2: -86.7}, programType: "kons/kons 60/60",
+    pointCollections: {angle: {points: [-7, -50, -86, -7, -50, -86]},
+      power: {points: [200, 200, 200, -100, -100, -100]}},
+    splitCollections: {movement: {splits: [
+      {color: "red", startIndex: 0, endIndex: 2},
+      {color: "blue", startIndex: 3, endIndex: 5}]}}};
+  assert.equal(createHQDisplay(raw).points[500], 0.5);
+  assert.equal(createHQDisplay(raw).active[30], false);
+  raw.programType = "eks/eks 30/30";
+  assert.equal(createHQDisplay(raw).points[500], 2);
+  raw.pointCollections.power.points[4] = -50;
+  const hq = createHQDisplay(raw);
+  assert.equal(hq.active[500], false);
+  assert.ok(hq.split.splits.length > 1);
 });
 
 test("display averages repetitions at matching angles and excludes disabled repetitions", () => {

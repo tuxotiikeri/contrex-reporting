@@ -27,8 +27,8 @@ export function EnduranceWorkCharts(props) {
 
 function WorkChart(props) {
   const width = 450;
-  const height = 250;
-  const plot = { x: 54, y: 34, width: 370, height: 166 };
+  const height = 320;
+  const plot = { x: 85, y: 93, width: 325, height: 152 };
   const series = createMemo(() => props.files().map((file) => ({
     side: file.legSide,
     color: file.baseColor ?? SIDE_COLORS[file.legSide],
@@ -55,12 +55,12 @@ function WorkChart(props) {
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{"font-family": "Helvetica, Arial, sans-serif"}}>
-      <text x={plot.x} y="12" font-size="16" font-weight="700" fill="#2A3940">{props.title}</text>
-      <text x={plot.x} y="31" font-size="10" fill="#5F696E">{t("Työ [J]")}</text>
-      <ChartLegend x={260} y={19} includeLSI />
+      <text x={plot.x + plot.width / 2} y="27" text-anchor="middle" font-size="18" font-weight="700" fill="#2A3940">{props.title}</text>
+      <text x={plot.x - 15} y="77" font-size="13" fill="#2A3940">{t("Työ [J]")}</text>
+      <ChartLegend x={90} y={53} includeLSI />
       <For each={Array.from({ length: maxValue() / 100 + 1 }, (_, index) => index * 100)}>
         {(tick) => <>
-          <text x={plot.x - 8} y={yAt(tick) + 3} text-anchor="end" font-size="10">{tick}</text>
+          <text x={plot.x - 8} y={yAt(tick) + 3} text-anchor="end" font-size="12">{tick}</text>
         </>}
       </For>
       <line x1={plot.x} y1={plot.y} x2={plot.x} y2={plot.y + plot.height} stroke="#2A3940" />
@@ -77,9 +77,9 @@ function WorkChart(props) {
         {(index) => <rect x={xAt(index) - 4} y={plot.y + plot.height + 6} width="8" height="6" fill="black" />}
       </For>
       <For each={[0, 4, 9, 14, 19].filter((index) => index < maximumRepetitions())}>
-        {(index) => <text x={xAt(index)} y={plot.y + plot.height + 24} text-anchor="middle" font-size="10">{index + 1}</text>}
+        {(index) => <text x={xAt(index)} y={plot.y + plot.height + 24} text-anchor="middle" font-size="12">{index + 1}</text>}
       </For>
-      <text x={plot.x + plot.width / 2} y={height - 5} text-anchor="middle" font-size="11">{t("Toisto")}</text>
+      <text x={plot.x + plot.width / 2} y={height - 25} text-anchor="middle" font-size="13">{t("Toisto")}</text>
     </svg>
   );
 }

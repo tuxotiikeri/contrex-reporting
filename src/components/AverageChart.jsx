@@ -10,14 +10,13 @@ import {
   ChartXAxisFloor,
   ChartYAxisFloor,
 } from "./GenericSVGChart.jsx";
-import { arrayUtils } from "../utils/utils.js";
 import { asserts } from "../collections/collections.js";
 import { patientProfile } from "../signals.js";
 import { parsedFileData } from "../signals.js";
 import { resolveComparisonSides } from "../utils/comparisonSides.js";
 import { muscleCurveDirections, reportMetricIndices } from "../utils/reportMetricDefinitions.js";
 import { ChartLegend } from "./ChartLegend.jsx";
-import { createTorqueDisplay } from "../utils/torqueDisplay.js";
+import { createTorqueDisplay, createHQDisplay, createLsiDisplay } from "../utils/torqueDisplay.js";
 
 export function AverageChart(props) {
   return (
@@ -65,7 +64,7 @@ function Chart(props) {
   function AverageErrorChartForTorque(props) {
     asserts.assertTypeFunction(props.listOfParsedCTM, "listOfParsedCTM");
     asserts.assertTruthy(
-      props.type === "Ext" || props.type === "Flex",
+      props.type === "Ext" || props.type === "Flex" || props.type === "HQ",
       "Unkown type",
     );
 
@@ -73,11 +72,11 @@ function Chart(props) {
     const averageKey = createMemo(() => `averagePower${props.type}`);
 
     const displayFiles = createMemo(() => props.listOfParsedCTM().map(file => {
-      const display = createTorqueDisplay(file.rawObject, props.type);
+      const display = props.type === "HQ" ? createHQDisplay(file.rawObject) : createTorqueDisplay(file.rawObject, props.type);
       return {...file, display, rawObject: {...file.rawObject,
         pointCollections: {...file.rawObject.pointCollections,
           [averageKey()]: {points: display.points},
-          [errorAverageKey()]: {points: display.error}},
+          [errorAverageKey()]: {points: display.error ?? [display.points, display.points]}},
         splitCollections: {...file.rawObject.splitCollections,
           [averageKey()]: display.split}}};
     }));
@@ -89,15 +88,11 @@ function Chart(props) {
       );
       return {
         minValue: 0,
-        maxValue: Math.max(100, Math.ceil((peakQuadriceps * 1.2) / 100) * 100),
+        maxValue: props.type === "HQ" ? 2 : Math.max(100, Math.ceil((peakQuadriceps * 1.2) / 100) * 100),
         xStartValue: 0,
         xEndValue: 90,
       };
     });
-
-    const colors = createMemo(() =>
-      displayFiles().map((file) => file.baseColor),
-    );
 
     const lsiData = createMemo(() => {
       const filesBySide = Object.fromEntries(
@@ -117,37 +112,15 @@ function Chart(props) {
       if (!involvedSide) {
         return null;
       }
-      const lsiAt = (index) => {
-        const involved = involvedSide === "left" ? leftPoints[index] : rightPoints[index];
-        const nonInvolved = involvedSide === "left" ? rightPoints[index] : leftPoints[index];
-        return left.display.active[index] && right.display.active[index] && nonInvolved > 0 && involved > 0
-          ? (involved / nonInvolved) * 100 : NaN;
-      };
-      const points = Array.from({ length }, (_, index) =>
-        Math.abs(leftPoints[index] - rightPoints[index]),
-      );
-      const clusters = [];
-      let clusterStart = null;
-      for (let index = 0; index < length; index++) {
-        const lsi = lsiAt(index);
-        const exceedsThreshold = Number.isFinite(lsi) && Math.abs(lsi - 100) > 10;
-        if (exceedsThreshold && clusterStart === null) clusterStart = index;
-        if (!exceedsThreshold && clusterStart !== null) {
-          clusters.push({ startIndex: clusterStart, endIndex: index - 1 });
-          clusterStart = null;
-        }
-      }
-      if (clusterStart !== null) clusters.push({ startIndex: clusterStart, endIndex: length - 1 });
-      return {
-        points,
-        startIndex: 0,
-        endIndex: length - 1,
-        clusters,
-        label: (difference, index) => {
-          const lsi = lsiAt(index);
-          return Number.isFinite(lsi) ? `${Math.round(lsi)} % (${Math.round(difference)} Nm)` : "–";
-        },
-      };
+      const involved = involvedSide === "left" ? left.display : right.display;
+      const reference = involvedSide === "left" ? right.display : left.display;
+      const result = createLsiDisplay(involved, reference);
+      return {...result, label: (difference, index) => {
+        const lsi = result.percentages[index];
+        if (!Number.isFinite(lsi)) return "–";
+        return props.type === "HQ" ? `${Math.round(lsi)} %`
+          : `${Math.round(lsi)} % (${Math.round(difference)} Nm)`;
+      }};
     });
 
     return (
@@ -163,13 +136,13 @@ function Chart(props) {
           {...svgArea}
           paddingLeft={70}
           paddingRight={25}
-          paddingBottom={40}
-          paddingTop={54}
+          paddingBottom={60}
+          paddingTop={78}
         >
           {(borderArea) => (
             <>
-              <ChartText position="top" {...borderArea} y={22} title={props.title} fontSize="16" fontWeight="700" />
-              <ChartLegend x={svgArea.width - 290} y={borderArea.y - 18} includeLSI />
+              <ChartText position="top" {...borderArea} y={27} title={props.title} fontSize="18" fontWeight="700" />
+              <ChartLegend x={90} y={53} includeLSI />
               <ChartPadding name="lines" {...borderArea} padding={15}>
                 {(lineArea) => (
                   <>
@@ -178,15 +151,15 @@ function Chart(props) {
                       y={borderArea.y}
                       dominant-baseline="ideographic"
                       text-anchor="start"
-                      font-size="10"
+                      font-size="13"
                     >
-                      {t("Vääntö [Nm]")}
+                      {props.type === "HQ" ? t("HQ-suhde") : t("Vääntö [Nm]")}
                     </text>
                     <ChartText
                       position="bottom"
                       {...borderArea}
                       y={borderArea.y + 20}
-                      title={t("Kulma [aste]")}
+                      title={t("Kulma [aste]")} fontSize="13"
                     />
                     <ChartXAxisFloor
                       {...borderArea}
@@ -195,6 +168,7 @@ function Chart(props) {
                       x={lineArea.x}
                       width={lineArea.width}
                       tickStep={10}
+                      font-size={12}
                     />
                     <ChartYAxisFloor
                       {...borderArea}
@@ -202,11 +176,12 @@ function Chart(props) {
                       endValue={combinedValues().minValue}
                       y={lineArea.y}
                       height={lineArea.height}
-                      tickStep={100}
+                      tickStep={props.type === "HQ" ? 0.5 : 100}
+                      font-size={12}
                     />
                     <line x1={lineArea.x} x2={lineArea.x} y1={lineArea.y} y2={lineArea.y + lineArea.height} stroke="black" />
                     <line x1={lineArea.x} x2={lineArea.x + lineArea.width} y1={lineArea.y + lineArea.height} y2={lineArea.y + lineArea.height} stroke="black" />
-                    <Show when={props.errorBands}>
+                    <Show when={props.errorBands && props.type !== "HQ"}>
                       <g data-error-bands>
                         <For each={displayFiles()}>
                           {(parsedData, fileIndex) => (
@@ -275,9 +250,9 @@ function Chart(props) {
                         {(lsi) => (
                           <For each={lsi().clusters}>
                             {(cluster) => {
-                              const total = lsi().endIndex + 1;
+                              const total = lsi().endIndex;
                               const start = cluster.startIndex / total;
-                              const end = (cluster.endIndex + 1) / total;
+                              const end = cluster.endIndex / total;
                               return <rect x={lineArea.x + start * lineArea.width} y={lineArea.y + lineArea.height + 4} width={Math.max(2, (end - start) * lineArea.width)} height="8" fill="black" />;
                             }}
                           </For>
@@ -314,7 +289,9 @@ function Chart(props) {
                                 {...mouseArea}
                                 {...lineArea}
                                 color={parsedData.baseColor}
-                                unit="Nm"
+                                unit={props.type === "HQ" ? "" : "Nm"}
+                                minHoverValue={props.type === "HQ" ? Number.EPSILON : undefined}
+                                label={props.type === "HQ" ? value => value.toFixed(2) : undefined}
                                 labelOffsetY={(fileIndex() % 3 - 1) * 12}
                               />
                             )}
@@ -349,197 +326,6 @@ function Chart(props) {
   }
 
   function AngleSpecificHQRatio(props) {
-    asserts.assertTypeFunction(props.listOfParsedCTM, "listOfParsedCTM");
-    asserts.assertTruthy(
-      props.type === "Ext" || props.type === "Flex",
-      "Unkown type",
-    );
-
-    const combinedValues = createMemo(() => {
-      const files = props.listOfParsedCTM();
-      const startAngles = [];
-      const endAngles = [];
-      for (const { rawObject } of files) {
-        startAngles.push(
-          rawObject.pointCollections.angleSpecificHQRatio.maxAngle,
-        );
-        endAngles.push(
-          rawObject.pointCollections.angleSpecificHQRatio.minAngle,
-        );
-      }
-
-      const xStartValue = arrayUtils.findByMaxDelta(startAngles, 0) || -1;
-      const xEndValue = arrayUtils.findByMaxDelta(endAngles, 0) || 1;
-
-      return {
-        minValue: 0,
-        maxValue: 2,
-        xStartValue: 0,
-        xEndValue: 90,
-      };
-    });
-
-    const colors = createMemo(() =>
-      props.listOfParsedCTM().map((file) => file.baseColor),
-    );
-
-    const visibleHQSplits = (parsedData) => {
-      const points = parsedData.rawObject.pointCollections.angleSpecificHQRatio.points;
-      const sourceSplits = parsedData.rawObject.splitCollections.angleSpecificHQRatio.splits;
-      const visible = [];
-      for (const split of sourceSplits) {
-        let start = null;
-        for (let index = split.startIndex; index <= split.endIndex; index++) {
-          const value = points[index];
-          const valid = Number.isFinite(value) && value >= 0 && value <= 2;
-          if (valid && start === null) start = index;
-          if ((!valid || index === split.endIndex) && start !== null) {
-            visible.push({ ...split, startIndex: start, endIndex: valid ? index : index - 1 });
-            start = null;
-          }
-        }
-      }
-      return visible.filter((split) => split.endIndex >= split.startIndex);
-    };
-
-    return (
-      <Show when={combinedValues().maxValue}>
-        <svg
-          width={svgArea.width}
-          height={svgArea.height}
-          style={{"font-family": "Helvetica, Arial, sans-serif"}}
-          onMouseLeave={clearHoverCoors}
-          onMouseMove={updateHoverCoords}
-        >
-          <ChartPadding
-            name="border"
-            {...svgArea}
-            paddingLeft={70}
-            paddingRight={25}
-            paddingBottom={40}
-            paddingTop={42}
-          >
-            {(borderArea) => (
-              <>
-                <ChartText
-                  position="top"
-                  {...borderArea}
-                  title={t("Kulmakohtainen HQ-suhde")} fontSize="16" fontWeight="700"
-                />
-                <ChartLegend x={svgArea.width - 188} y={borderArea.y - 18} />
-                <ChartPadding name="lines" {...borderArea} padding={15}>
-                  {(lineArea) => (
-                    <>
-                      <ChartText
-                        position="bottom"
-                        {...borderArea}
-                        y={borderArea.y + 20}
-                        title={t("Kulma [aste]")}
-                      />
-                      <ChartXAxisFloor
-                        {...borderArea}
-                        startValue={Math.abs(combinedValues().xStartValue)}
-                        endValue={Math.abs(combinedValues().xEndValue)}
-                        x={lineArea.x}
-                        width={lineArea.width}
-                        tickStep={10}
-                      />
-                      <ChartYAxisFloor
-                        {...borderArea}
-                        startValue={combinedValues().maxValue}
-                        endValue={combinedValues().minValue}
-                        y={lineArea.y}
-                        height={lineArea.height}
-                        tickStep={0.5}
-                      />
-                      <line x1={lineArea.x} x2={lineArea.x} y1={lineArea.y} y2={lineArea.y + lineArea.height} stroke="black" />
-                      <line x1={lineArea.x} x2={lineArea.x + lineArea.width} y1={lineArea.y + lineArea.height} y2={lineArea.y + lineArea.height} stroke="black" />
-                      {/* <Show when={props.errorBands}> */}
-                      {/*   <g data-error-bands> */}
-                      {/*     <For each={props.listOfParsedCTM()}>{parsedData => ( */}
-                      {/*       <ChartErrorBands */}
-                      {/*         points={parsedData.rawObject.pointCollections.angleSpecificHQRatioError.points} */}
-                      {/*         splits={parsedData.rawObject.splitCollections.angleSpecificHQRatio.splits} */}
-                      {/*         startIndex={parsedData.rawObject.splitCollections.angleSpecificHQRatio.startIndex} */}
-                      {/*         endIndex={parsedData.rawObject.splitCollections.angleSpecificHQRatio.endIndex} */}
-                      {/*         fill={`color-mix(in oklab, ${parsedData.baseColor} 15%, transparent)`} */}
-                      {/*         stroke={`color-mix(in oklab, ${parsedData.baseColor} 30%, transparent)`} */}
-                      {/*         {...lineArea} */}
-                      {/*         {...combinedValues()} */}
-                      {/*       ></ChartErrorBands> */}
-                      {/*     )}</For> */}
-                      {/*   </g> */}
-                      {/* </Show> */}
-                      <g data-lines>
-                        <For each={props.listOfParsedCTM()}>
-                          {(parsedData) => (
-                            <>
-                              <ChartPath
-                                points={
-                                  parsedData.rawObject.pointCollections
-                                    .angleSpecificHQRatio.points
-                                }
-                                splits={visibleHQSplits(parsedData)}
-                                startIndex={
-                                  parsedData.rawObject.splitCollections
-                                    .angleSpecificHQRatio.startIndex
-                                }
-                                endIndex={
-                                  parsedData.rawObject.splitCollections
-                                    .angleSpecificHQRatio.endIndex
-                                }
-                                stroke={parsedData.baseColor}
-                                {...combinedValues()}
-                                {...lineArea}
-                                {...controls}
-                              ></ChartPath>
-                            </>
-                          )}
-                        </For>
-                      </g>
-                      <ChartMousePositionInPercentage
-                        {...controls}
-                        {...borderArea}
-                        width={lineArea.width}
-                        x={lineArea.x}
-                      >
-                        {(mouseArea) => (
-                          <>
-                            <For each={props.listOfParsedCTM()}>
-                              {(parsedData) => (
-                                <ChartHoverPoint
-                                  points={
-                                    parsedData.rawObject.pointCollections
-                                      .angleSpecificHQRatio.points
-                                  }
-                                  startIndex={
-                                    parsedData.rawObject.splitCollections
-                                      .angleSpecificHQRatio.startIndex
-                                  }
-                                  endIndex={
-                                    parsedData.rawObject.splitCollections
-                                      .angleSpecificHQRatio.endIndex
-                                  }
-                                  {...combinedValues()}
-                                  {...mouseArea}
-                                  {...lineArea}
-                                  color={parsedData.baseColor}
-                                  maxHoverValue={2}
-                                  label={(value) => value.toFixed(2)}
-                                />
-                              )}
-                            </For>
-                          </>
-                        )}
-                      </ChartMousePositionInPercentage>
-                    </>
-                  )}
-                </ChartPadding>
-              </>
-            )}
-          </ChartPadding>
-        </svg>
-      </Show>
-    );
+    return <AverageErrorChartForTorque {...props} type="HQ" title={t("Kulmakohtainen HQ-suhde")} />;
   }
 }

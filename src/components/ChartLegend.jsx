@@ -7,14 +7,14 @@ export function ChartLegend(props) {
   const x = props.x ?? 0;
   const y = props.y ?? 0;
   return (
-    <g font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#2A3940" aria-label="Chart legend">
+    <g font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#2A3940" aria-label="Chart legend">
       <circle cx={x} cy={y} r="3" fill="#159447" />
       <text x={x + 7} y={y + 3.2}>{t("Oikea")}</text>
-      <circle cx={x + 54} cy={y} r="3" fill="#d33434" />
-      <text x={x + 61} y={y + 3.2}>{t("Vasen")}</text>
+      <circle cx={x + 65} cy={y} r="3" fill="#d33434" />
+      <text x={x + 72} y={y + 3.2}>{t("Vasen")}</text>
       <Show when={props.includeLSI}>
-        <rect x={x + 101} y={y - 2.5} width="9" height="5" fill="black" />
-        <text x={x + 116} y={y + 3.2}>{t("LSI yli 10 %")}</text>
+        <rect x={x + 130} y={y - 2.5} width="9" height="5" fill="black" />
+        <text x={x + 145} y={y + 3.2}>{t("LSI yli 10 %")}</text>
       </Show>
     </g>
   );
