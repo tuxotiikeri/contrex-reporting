@@ -28,7 +28,7 @@ function drawLabelValue(pdf, label, value, x, y) {
   pdf.text(String(value), valueX, y);
 }
 
-function addPatientInfo(pdf, patientInfo, files) {
+function addPatientInfo(pdf, patientInfo, files, detailTest = null) {
   const involved = String(patientInfo.involvedSide ?? "").includes("vasen") ? "Vasen" : String(patientInfo.involvedSide ?? "").includes("oikea") ? "Oikea" : "–";
   const subjectName = [patientInfo.subjectNameFirst, patientInfo.subjectName].filter(Boolean).join(" ");
   const subjectId = patientInfo.subjectId ?? patientInfo["subject-id"] ?? patientInfo["subject id"] ?? patientInfo.subjectID;
@@ -40,15 +40,29 @@ function addPatientInfo(pdf, patientInfo, files) {
   pdf.setTextColor(...reportColors.ink);
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(13);
-  const brand = "Metropolia";
+  const brand = detailTest
+    ? reportText(pdf, detailTest.title).split(" ")[0]
+    : "Metropolia";
   pdf.setTextColor(...reportColors.accent);
   pdf.text(brand, 10, 19);
   const brandEnd = 10 + pdf.getTextWidth(`${brand} `);
   pdf.setTextColor(...reportColors.ink);
-  pdf.text(reportText(pdf, "Metropolia liikelaboratorio").replace(/^Metropolia\s*/, ""), brandEnd, 19);
-  pdf.setFontSize(8.5);
-  pdf.text(reportText(pdf, "Isokineettinen polven ojennus- ja koukistusvoimaraportti"), 10, 25);
-  pdf.text("CON-TREX MultiJoint", 10, 29.5);
+  if (detailTest) {
+    const title = reportText(pdf, detailTest.title);
+    pdf.text(title.slice(brand.length).trim(), brandEnd, 19);
+    pdf.setFontSize(6.8);
+    pdf.setTextColor(95, 105, 110);
+    DETAIL_PROTOCOLS[detailTest.key].forEach((line, index) => {
+      const translated = reportText(pdf, line);
+      const colon = translated.indexOf(":");
+      drawLabelValue(pdf, translated.slice(0, colon + 1), translated.slice(colon + 1).trim(), 10, 28 + index * 5);
+    });
+  } else {
+    pdf.text(reportText(pdf, "Metropolia liikelaboratorio").replace(/^Metropolia\s*/, ""), brandEnd, 19);
+    pdf.setFontSize(8.5);
+    pdf.text(reportText(pdf, "Voimaraportti: polven ojennus ja koukistus"), 10, 25);
+    pdf.text(reportText(pdf, "Isokineettinen CON-TREX MultiJoint"), 10, 29.5);
+  }
   pdf.setFillColor(...reportColors.pale);
   pdf.setDrawColor(...reportColors.border);
   pdf.roundedRect(126, 14, 74, 29, 2, 2, "FD");
@@ -61,7 +75,7 @@ function addPatientInfo(pdf, patientInfo, files) {
   pdf.setFont("Helvetica", "normal");
   pdf.setFontSize(6.8);
   pdf.setTextColor(95, 105, 110);
-  pdf.text(reportText(pdf, "Myllypurontie 1, 00920 | liikelaboratorio@metropolia.fi"), 10, 34);
+  if (!detailTest) pdf.text(reportText(pdf, "Myllypurontie 1, 00920 | liikelaboratorio@metropolia.fi"), 10, 34);
   if (comment && comment !== "–") pdf.text(`${reportText(pdf, "Lisäkommentti")}: ${comment}`, 10, 41);
   pdf.setTextColor(0);
 }
@@ -499,29 +513,17 @@ export async function generatePDF() {
     }
 
     pdf.addPage();
-    addPatientInfo(pdf, patientInfo, files);
-
-    pdf.setFont("Helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(...reportColors.ink);
-    pdf.text(reportText(pdf, testDef.title), 10, 55);
-    pdf.setFont("Helvetica", "normal");
-    pdf.setFontSize(7.5);
-    pdf.setTextColor(95, 105, 110);
-    DETAIL_PROTOCOLS[testDef.key].forEach((line, index) => {
-      const translated = reportText(pdf, line);
-      const colon = translated.indexOf(":");
-      drawLabelValue(pdf, translated.slice(0, colon + 1), translated.slice(colon + 1).trim(), 10, 63 + index * 5);
-    });
-    pdf.setTextColor(0);
+    addPatientInfo(pdf, patientInfo, files, testDef);
 
     pngs.slice(0, 2).forEach(({dataUrl, width, height}, index) => {
-      pdf.addImage(dataUrl, "PNG", index * 105, 80, 105, 105 * height / width);
+      // Both complete chart images fit inside the header's 10–200 mm span.
+      // Adjacent image frames reduce the gap without overlapping axis labels.
+      pdf.addImage(dataUrl, "PNG", 10 + index * 95, 56, 95, 95 * height / width);
     });
 
     // One unified clinical table per detail page. The former small statistics
     // table is intentionally merged under the relevant muscle heading here.
-    const tableY = 161;
+    const tableY = 136;
     renderReportTable(
       pdf,
       reportRows(testDef.key, group, referenceSet, operated, groups, {includeDetails: true}),
