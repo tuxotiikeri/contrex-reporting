@@ -7,7 +7,7 @@ import crossIcon from "../assets/icons/delete.png";
 import { numberUtils } from "./utils";
 import {referenceValues} from "../data/referenceValues.js";
 import {reportMetricIndices} from "./reportMetricDefinitions.js";
-import {reportRows} from "./reportRows.js";
+import {reportRows, reportLegLabels} from "./reportRows.js";
 export {reportRows} from "./reportRows.js";
 import {resolveComparisonSides} from "./comparisonSides.js";
 import {SYMMETRY_SCALE, symmetryMarkerPosition, symmetryScaleSegments, symmetryStatusColor} from "./symmetryScale.js";
@@ -222,11 +222,12 @@ function maskRoundedTableCorners(pdf, x, y, width, height, radius = 2) {
   pdf.lineTo(x + width, y + height - radius); pdf.curveTo(x + width, y + height - radius + curve, x + width - radius + curve, y + height, x + width - radius, y + height); pdf.fill();
 }
 
-function renderReportTable(pdf, rows, startY, x = 10, framed = false) {
+function renderReportTable(pdf, rows, startY, x = 10, framed = false, involvedSide = null) {
+  const legs = reportLegLabels(involvedSide);
   autoTable(pdf, {
     startY,
     margin: {left: x},
-    head: [["Mittari", "Verrokkijalka / dominoiva jalka", "", "Oireinen / ei-dominantti jalka", "Symmetria %", "Viitearvo\n(keskiarvo ± SD)", "Status"]],
+    head: [["Mittari", legs.reference, "", legs.involved, "Symmetria %", "Viitearvo\n(keskiarvo ± SD)", "Status"]],
     body: rows.map((row) => row.cells ?? row),
     theme: "plain",
     tableWidth: 162,
@@ -305,6 +306,8 @@ function renderReportCard(pdf, {title, key, test, referenceSet, operated, x, y})
     reportRows(key, test, referenceSet, operated),
     y + 9,
     x,
+    false,
+    operated,
   );
   pdf.setDrawColor(...reportColors.border);
   pdf.roundedRect(x, y, width, endY - y + 2, 2, 2, "S");
@@ -350,6 +353,9 @@ function addAnalysisTable(pdf, group, patientInfo, testKey, allGroups) {
     pdf,
     reportRows(testKey, group, referenceSet, operated, allGroups),
     145,
+    10,
+    false,
+    operated,
   );
 }
 
@@ -434,6 +440,9 @@ export async function generatePDF() {
       pdf,
       reportRows(key, test, referenceSet, operated, groups),
       tableStartY,
+      10,
+      false,
+      operated,
     );
     pdf.setDrawColor(...reportColors.border);
     pdf.setLineWidth(0.35);
@@ -492,7 +501,7 @@ export async function generatePDF() {
     pdf.setFontSize(9.5);
     pdf.text(reportText(pdf, "Mixed ratio"), 13, y + 9.4);
     pdf.setTextColor(0);
-    const endY = renderReportTable(pdf, mixedRows, y + 13, 10);
+    const endY = renderReportTable(pdf, mixedRows, y + 13, 10, false, operated);
     pdf.setDrawColor(...reportColors.border);
     pdf.roundedRect(10, y + 4, 133, endY - y - 2, 2, 2, "S");
     y = endY + 5;
@@ -530,6 +539,7 @@ export async function generatePDF() {
       tableY,
       10,
       true,
+      operated,
     );
   }
   const patientMeasurements = files[0].rawObject.measurement;

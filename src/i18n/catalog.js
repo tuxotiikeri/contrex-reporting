@@ -68,6 +68,19 @@ export const english = {
   "Väripalkin musta viiva näyttää LSI-arvon yhteisellä asteikolla. Vihreä merkki = hyväksyttävä; punainen rasti = yli 10 % puoliero tai selvä viitearvopoikkeama.": "The black marker shows LSI on a shared scale. Green tick = within criteria; red cross = asymmetry over 10% or a marked reference deviation.",
 };
 
+// Reference categories retain stable Finnish keys in saved participant profiles.
+for (const [sex, translatedSex, counts] of [
+  ["Miehet", "Men", [323, 387, 157, 65, 20]],
+  ["Naiset", "Women", [375, 426, 277, 138, 40]],
+]) {
+  ["20–29", "30–39", "40–49", "50–59", "60–69"].forEach((age, index) => {
+    english[`${sex} ${age} vuotta (Liu et al. 2025)`] = `${translatedSex} aged ${age} years (Liu et al. 2025)`;
+    english[`Liu et al. (2025), n=${counts[index]}, ${age} vuotta.`] = `Liu et al. (2025), n=${counts[index]}, aged ${age} years.`;
+  });
+}
+english["Kulma huippuväännössä"] = "Angle at peak torque";
+english["Huippuväännön HQ-suhde (%)"] = "Peak torque H/Q ratio (%)";
+
 export function translate(text, locale = "fi") {
   if (Array.isArray(text)) return text.map((line) => translate(line, locale));
   return locale === "en" && typeof text === "string" && Object.hasOwn(english, text) ? english[text] : text;

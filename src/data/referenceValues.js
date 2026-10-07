@@ -1,5 +1,7 @@
 // Reference sets are deliberately kept outside the report components so new
 // populations can be added without changing the rendering code.
+import {liuReferenceValues} from "./liuReferenceValues.js";
+
 export const referenceValues = {
   "Miehet maantiepyöräily, kilpailutaso (tutkimusviite)": {
     label: "Miesmaantiepyöräilijät, kilpailutaso",
@@ -128,6 +130,7 @@ export const referenceValues = {
       kons180: { bwExt: { mean: 2.37, sd: 0.34 }, bwFlex: { mean: 1.29, sd: 0.16 }, hq: { mean: 55, sd: 6 } },
     },
   },
+  ...liuReferenceValues,
 };
 
 export const referenceValueOptions = Object.keys(referenceValues);

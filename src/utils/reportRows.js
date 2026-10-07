@@ -59,6 +59,12 @@ export function reportLegOrder(involvedSide) {
   };
 }
 
+export function reportLegLabels(involvedSide) {
+  const order = reportLegOrder(involvedSide);
+  const label = side => side === "left" ? "Vasen" : "Oikea";
+  return {reference: label(order.referenceSide), involved: label(order.involvedSide)};
+}
+
 function orderedValues(rightValue, leftValue, rightStatus, leftStatus, order) {
   const involvedIsRight = order.involvedSide === "right";
   return involvedIsRight
@@ -89,7 +95,7 @@ export function reportRows(testKey, group, referenceSet, operated, allGroups = {
     if (includeDetails) {
       definitions.push(
         ["Vääntö 0,2 s kohdalla (Nm)", indices.at200, `at200${referenceSuffix}`],
-        ["Kulma huippuväännössä (°)", indices.peakAngle, `peakAngle${referenceSuffix}`, {noStatus: true}],
+        ["Kulma huippuväännössä (°)", indices.peakAngle, `peakAngle${referenceSuffix}`, {noStatus: true, noSymmetry: true}],
       );
       if (isEndurance) definitions.push(["Työväsymisindeksi (J/s)", indices.workFatigue, `fatigue${referenceSuffix}`]);
       else definitions.push(["Huippuväännön vaihtelu (%)", indices.peakTorqueCV, `peakTorqueCV${referenceSuffix}`, {noStatus: true, noSymmetry: true}]);
@@ -118,8 +124,8 @@ export function reportRows(testKey, group, referenceSet, operated, allGroups = {
         ? symmetryPercent(rightValue, leftValue, order.involvedSide === "right" ? "oikea" : "vasen")
         : "–";
       const reference = metricReference(referenceSet, testKey, referenceKey);
-      const rightStatus = referenceStatus(rightValue, reference);
-      const leftStatus = referenceStatus(leftValue, reference);
+      const rightStatus = rowOptions.noStatus ? "none" : referenceStatus(rightValue, reference);
+      const leftStatus = rowOptions.noStatus ? "none" : referenceStatus(leftValue, reference);
       const statuses = orderedValues(rightValue, leftValue, rightStatus, leftStatus, order);
       rows.push({
         cells: [label, getVal({0: values.referenceValue}, 0), "", getVal({0: values.involvedValue}, 0), lsi, referenceText(reference), ""],
@@ -173,6 +179,16 @@ export function reportRows(testKey, group, referenceSet, operated, allGroups = {
         symmetry: parseFloat(lsi),
         hasReference: false,
       });
+    }
+    const peakHqRef = metricReference(referenceSet, testKey, "hqPeak");
+    if (isEndurance && includeDetails && peakHqRef) {
+      const rightPeakHq = hqValue(right, testKey, "torque");
+      const leftPeakHq = hqValue(left, testKey, "torque");
+      const values = orderedValues(rightPeakHq, leftPeakHq,
+        referenceStatus(rightPeakHq, peakHqRef), referenceStatus(leftPeakHq, peakHqRef), order);
+      rows.push({cells: ["Huippuväännön HQ-suhde (%)", getVal({0: values.referenceValue}, 0), "", getVal({0: values.involvedValue}, 0), "–", referenceText(peakHqRef), ""],
+        referenceStatus: values.referenceStatus, involvedStatus: values.involvedStatus,
+        symmetry: null, hasReference: true, noBar: true, isHq: true});
     }
     const rightHq = hqValue(right, testKey, isEndurance ? "averageWork" : "meanPeak");
     const leftHq = hqValue(left, testKey, isEndurance ? "averageWork" : "meanPeak");

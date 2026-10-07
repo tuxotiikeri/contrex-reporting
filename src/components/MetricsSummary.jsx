@@ -18,7 +18,8 @@ const testKeyForProgram = (programType) => {
 const metrics = [
   { label: "Huippuvääntö", unit: "Nm", metric: "torque", refExt: "torqueExt", refFlex: "torqueFlex" },
   { label: "Huippuvääntö / kg", unit: "Nm/kg", metric: "bw", refExt: "bwExt", refFlex: "bwFlex", decimals: 2 },
-  { label: "Työ keskimäärin", unit: "J", metric: "averageWork", refExt: "workExt", refFlex: "workFlex" },
+  { label: "Työ keskimäärin", unit: "J", metric: "averageWork", refExt: "averageWorkExt", refFlex: "averageWorkFlex" },
+  { label: "Kulma huippuväännössä", unit: "°", metric: "peakAngle", refExt: "peakAngleExt", refFlex: "peakAngleFlex", noSymmetry: true },
 ];
 
 const directionGroups = [
@@ -52,7 +53,7 @@ export function MetricsSummary(props) {
     ]).map((row) => {
       const involved = involvedSide === "left" ? row.left : involvedSide === "right" ? row.right : null;
       const nonInvolved = involvedSide === "left" ? row.right : involvedSide === "right" ? row.left : null;
-      const lsi = involved && nonInvolved ? 100 * involved / nonInvolved : null;
+      const lsi = !row.noSymmetry && involved && nonInvolved ? 100 * involved / nonInvolved : null;
       return { ...row, lsi };
     });
     const quadriceps = Math.abs(right?.[indices.quadriceps.meanPeak]);
@@ -62,6 +63,15 @@ export function MetricsSummary(props) {
     const rightHQ = quadriceps ? hamstrings / quadriceps : NaN;
     const leftHQ = leftQuadriceps ? leftHamstrings / leftQuadriceps : NaN;
     rows.push({ label: "HQ-suhde", unit: "", direction: "hq", right: rightHQ, left: leftHQ, lsi: null, ref: testReferences?.hq, decimals: 2 });
+    if (testReferences?.hqPeak) {
+      const peakRatio = side => {
+        const q = Math.abs(side?.[indices.quadriceps.torque]);
+        const h = Math.abs(side?.[indices.hamstrings.torque]);
+        return q ? h / q : NaN;
+      };
+      rows.push({label: "Huippuväännön HQ-suhde (%)", direction: "hq",
+        right: peakRatio(right), left: peakRatio(left), lsi: null, ref: testReferences.hqPeak});
+    }
     return rows;
   });
 
@@ -87,7 +97,7 @@ export function MetricsSummary(props) {
             </For>
             <tr class="bg-gray-50"><th colspan="5" class="px-2 py-1.5 text-left font-semibold text-gray-700">{t("HQ-suhde")}</th></tr>
             <For each={data().filter((row) => row.direction === "hq")}>
-              {(row) => <tr class="border-b border-gray-100"><td class="px-2 py-1.5">{t("HQ-suhde")}</td><td class="px-2 py-1.5 text-right">{Number.isFinite(row.right) ? `${format(row.right * 100, 0)} %` : "–"}</td><td class="px-2 py-1.5 text-right">{Number.isFinite(row.left) ? `${format(row.left * 100, 0)} %` : "–"}</td><td class="px-2 py-1.5 text-right">–</td><td class="px-2 py-1.5 text-right text-gray-600">{referenceText(row.ref)}</td></tr>}
+              {(row) => <tr class="border-b border-gray-100"><td class="px-2 py-1.5">{t(row.label)}</td><td class="px-2 py-1.5 text-right">{Number.isFinite(row.right) ? `${format(row.right * 100, 0)} %` : "–"}</td><td class="px-2 py-1.5 text-right">{Number.isFinite(row.left) ? `${format(row.left * 100, 0)} %` : "–"}</td><td class="px-2 py-1.5 text-right">–</td><td class="px-2 py-1.5 text-right text-gray-600">{referenceText(row.ref)}</td></tr>}
             </For>
           </tbody>
         </table>
