@@ -1,5 +1,6 @@
 import {symmetryPercent, padRoundDecimalsToLength} from "./numberUtils.js";
 import * as numberUtils from "./numberUtils.js";
+import {referenceNumberText} from "./referenceFormatting.js";
 import {mixedRatio, reportMetricIndices, movementChannelMetricIndices, isEccentricProtocol, hqRatioFromChannels} from "./reportMetricDefinitions.js";
 const reportColors = {ink: [42, 57, 64]};
 
@@ -31,7 +32,7 @@ const referenceText = (reference) => {
   if (!reference) return "–";
   if (reference.minimum != null && reference.maximum != null) return `${reference.minimum}-${reference.maximum}`;
   if (reference.minimum != null) return `≥ ${reference.minimum}`;
-  return `${reference.mean} ± ${reference.sd}`;
+  return `${referenceNumberText(reference.mean, reference)} ± ${referenceNumberText(reference.sd, reference)}`;
 };
 
 const hqValue = (analysis, testKey, metric) => {

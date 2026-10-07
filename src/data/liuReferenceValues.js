@@ -45,7 +45,8 @@ function metrics(values, endurance) {
     torqueExt: pair(0), torqueFlex: pair(2),
     // Endurance's existing H/Q is work-based, not the study's peak-torque H/Q.
     [endurance ? "hqPeak" : "hq"]: pair(4),
-    bwExt: pair(6, 100), bwFlex: pair(8, 100),
+    bwExt: {...pair(6, 100), displayDecimals: 2},
+    bwFlex: {...pair(8, 100), displayDecimals: 2},
     peakAngleExt: pair(10), peakAngleFlex: pair(12),
     // User-selected comparison with per-repetition work; never apply these
     // single-movement values to a 20-repetition total or invent a set total.

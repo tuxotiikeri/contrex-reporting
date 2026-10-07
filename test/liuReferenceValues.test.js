@@ -5,6 +5,7 @@ import {referenceValues, referenceValueOptions} from "../src/data/referenceValue
 import {reportRows, reportLegLabels} from "../src/utils/reportRows.js";
 import {resolveComparisonSides} from "../src/utils/comparisonSides.js";
 import {translate} from "../src/i18n/catalog.js";
+import {referenceNumberText} from "../src/utils/referenceFormatting.js";
 
 const male = liuReferenceValues["Miehet 20–29 vuotta (Liu et al. 2025)"];
 const data = {110: 200, 111: -100, 112: 190, 113: -90, 114: 57, 115: 41,
@@ -32,11 +33,27 @@ test("Liu categories append to the existing selector with both protocols and tra
 });
 
 test("BW mean and SD are converted from the source's percentage scale exactly once", () => {
-  assert.deepEqual(male.metrics.kons60.bwExt, {mean: 2.5061, sd: 0.5064});
-  assert.deepEqual(male.metrics.kons60.bwFlex, {mean: 1.24, sd: 0.3486});
-  assert.deepEqual(male.metrics.kons180.bwExt, {mean: 1.5883, sd: 0.4577});
+  assert.deepEqual(male.metrics.kons60.bwExt, {mean: 2.5061, sd: 0.5064, displayDecimals: 2});
+  assert.deepEqual(male.metrics.kons60.bwFlex, {mean: 1.24, sd: 0.3486, displayDecimals: 2});
+  assert.deepEqual(male.metrics.kons180.bwExt, {mean: 1.5883, sd: 0.4577, displayDecimals: 2});
   assert.deepEqual(male.metrics.kons60.averageWorkExt, {mean: 187.95, sd: 41.1});
   assert.deepEqual(male.metrics.kons180.averageWorkFlex, {mean: 53.4, sd: 22.91});
+});
+
+test("Liu BW references display at most two decimals while retaining calculation precision", () => {
+  for (const ref of Object.values(liuReferenceValues)) {
+    for (const metrics of Object.values(ref.metrics)) {
+      for (const bw of [metrics.bwExt, metrics.bwFlex]) {
+        for (const value of [bw.mean, bw.sd]) {
+          assert.match(referenceNumberText(value, bw), /^\d+(\.\d{1,2})?$/);
+        }
+      }
+    }
+  }
+  const rows = reportRows("kons60", {right: data, left: data}, male, "right");
+  assert.equal(rows.find(row => row.cells[0] === "Huippuvääntö (Nm / kg)").cells[5], "2.51 ± 0.51");
+  assert.equal(male.metrics.kons60.bwExt.mean, 2.5061);
+  assert.equal(referenceNumberText(1.2, {displayDecimals: 2}), "1.2");
 });
 
 test("angle norms are displayed without a symmetry bar, LSI or status", () => {

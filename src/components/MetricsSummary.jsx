@@ -4,6 +4,7 @@ import { parsedFileData, patientProfile } from "../signals.js";
 import { referenceValues } from "../data/referenceValues.js";
 import { resolveComparisonSides } from "../utils/comparisonSides.js";
 import { reportMetricIndices } from "../utils/reportMetricDefinitions.js";
+import {referenceNumberText} from "../utils/referenceFormatting.js";
 
 const testKeyForProgram = (programType) => {
   const program = String(programType ?? "").toLowerCase();
@@ -33,7 +34,7 @@ const format = (value, decimals = 0) =>
 const referenceText = (reference) => {
   if (!reference) return "–";
   if (reference.minimum != null) return `≥ ${reference.minimum}`;
-  return `${reference.mean} ± ${reference.sd}`;
+  return `${referenceNumberText(reference.mean, reference)} ± ${referenceNumberText(reference.sd, reference)}`;
 };
 
 export function MetricsSummary(props) {
