@@ -2,6 +2,7 @@ import { asserts } from "../collections/collections";
 import { arrayUtils, numberUtils, stringUtils } from "./utils";
 import { applyGravityCorrection } from "./gravityCorrection.js";
 import { hqRatioFromChannels } from "./reportMetricDefinitions.js";
+import {measurementProtocol, normalizeSubjectSex} from "./measurementMetadata.js";
 import {
   createMarkerBasedRepetitionSplits,
   createMovementBasedRepetitionSplits,
@@ -970,6 +971,8 @@ const createSmallestAngleSampleSizePointCollection = (splits, anglePoints) => {
 // kons/kons 60/60 becomes -> kons 60
 // So if the type or speed repeat we will just remove the duplicated value
 const createProgramType = (configuration) => {
+  const protocol = measurementProtocol(configuration);
+  if (protocol) return protocol.label;
   let programType = "";
   if (configuration.program[1].startsWith("isokin. ballistinen")) {
     const [typeA, typeB] = configuration.program[1].substring(20).split("/");
@@ -1047,6 +1050,8 @@ const formatRawCTMObject = (
   object.splitCollections = collections.splits;
   object.memo = cleanMemo(rawObject.memo.join("\n"));
   object.session = createParsedSectionFromRawObjectSection(rawObject.session);
+  const sourceSex = normalizeSubjectSex(object.session.subjectSex);
+  if (sourceSex) object.session.subjectSex = [sourceSex === "Mies" ? 1 : sourceSex === "Nainen" ? 2 : 0, sourceSex];
   if (patientProfile?.weight !== "" && Number(patientProfile.weight) > 0) {
     object.session.subjectWeight = Number(patientProfile.weight);
   }

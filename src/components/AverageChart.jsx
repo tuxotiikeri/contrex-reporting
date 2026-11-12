@@ -1,5 +1,5 @@
 import { t } from "../i18n/index.js";
-import { batch, createMemo, createSignal, ErrorBoundary } from "solid-js";
+import { batch, createMemo, createSignal, ErrorBoundary, For, Show } from "solid-js";
 import {
   ChartErrorBands,
   ChartHoverPoint,
@@ -52,10 +52,19 @@ function Chart(props) {
   return (
     <Show when={props.listOfParsedCTM()?.length}>
       <div class="flex flex-col gap-10">
-        <AverageErrorChartForTorque title={t("Etureisi - keskiarvo")} type={muscleDirections().quadriceps} {...props} />
-        <AverageErrorChartForTorque title={t("Takareisi - keskiarvo")} type={muscleDirections().hamstrings} {...props} />
+        <div class={props.comparisonFor ? "torque-comparison-row" : ""}>
+          <div class="min-w-0"><AverageErrorChartForTorque title={t("Etureisi - keskiarvo")} type={muscleDirections().quadriceps} {...props} /></div>
+          {props.comparisonFor?.("quadriceps")}
+        </div>
+        <div class={props.comparisonFor ? "torque-comparison-row" : ""}>
+          <div class="min-w-0"><AverageErrorChartForTorque title={t("Takareisi - keskiarvo")} type={muscleDirections().hamstrings} {...props} /></div>
+          {props.comparisonFor?.("hamstrings")}
+        </div>
         <Show when={props.showHQ !== false}>
-          <AngleSpecificHQRatio type="Flex" {...props} />
+          <div class={props.comparisonFor ? "torque-comparison-row" : ""}>
+            <div class="min-w-0"><AngleSpecificHQRatio type="Flex" {...props} /></div>
+            {props.comparisonFor?.("hq")}
+          </div>
         </Show>
       </div>
     </Show>
@@ -127,6 +136,7 @@ function Chart(props) {
       <svg
         width={svgArea.width}
         height={svgArea.height}
+        viewBox={`0 0 ${svgArea.width} ${svgArea.height}`}
         style={{"font-family": "Helvetica, Arial, sans-serif"}}
         onMouseLeave={clearHoverCoors}
         onMouseMove={updateHoverCoords}
@@ -181,7 +191,7 @@ function Chart(props) {
                       font-size={12}
                     />
                     <line x1={lineArea.x} x2={lineArea.x} y1={lineArea.y} y2={lineArea.y + lineArea.height} stroke="black" />
-                    <line x1={lineArea.x} x2={lineArea.x + lineArea.width} y1={lineArea.y + lineArea.height} y2={lineArea.y + lineArea.height} stroke="black" />
+                    <line data-torque-baseline x1={lineArea.x} x2={lineArea.x + lineArea.width} y1={lineArea.y + lineArea.height} y2={lineArea.y + lineArea.height} stroke="black" />
                     <Show when={props.errorBands && props.type !== "HQ"}>
                       <g data-error-bands>
                         <For each={displayFiles()}>

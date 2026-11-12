@@ -1,4 +1,5 @@
 import { indexedDBUtils } from "../utils/utils";
+import {readMeasurementFile} from "../utils/measurementText.js";
 
 onmessage = async (message) => {
   const { activeFolders } = message.data;
@@ -36,7 +37,7 @@ onmessage = async (message) => {
           if (batchIndex > 0) {
             await batchPromises[batchIndex];
           }
-          file.text().then((text) => {
+          readMeasurementFile(file).then((text) => {
             if (++filesFinishedReading === filesStartedReading) {
               allFilesResolve();
             }

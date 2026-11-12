@@ -3,21 +3,12 @@ import { AverageChart } from "./AverageChart.jsx";
 import { EnduranceWorkCharts } from "./EnduranceWorkCharts.jsx";
 import { parsedFileData } from "../signals";
 import { colors } from "../App.jsx";
+import {measurementProtocolKey} from "../utils/measurementMetadata.js";
 
 // test types to include in the hidden charts
 const TESTS = [
-  "kons/kons 60/60",
-  "kons/kons 240/240",
-  "eks/eks 30/30",
-  "kons/kons 180/180",
+  "kons60", "kons240", "eks30", "eks60", "kons180",
 ];
-
-const PDF_KEYS = {
-  "kons/kons 60/60": "kons60",
-  "kons/kons 240/240": "kons240",
-  "eks/eks 30/30": "eks30",
-  "kons/kons 180/180": "kons180",
-};
 
 // prepare chart data grouped by test type
 // assign a base color depending on the leg side
@@ -27,7 +18,7 @@ export function HiddenCharts() {
     return TESTS.map((testKey) => ({
       key: testKey,
       files: files
-        .filter((f) => f.measurementType.includes(testKey))
+        .filter((f) => measurementProtocolKey(f) === testKey)
         .map((f) => {
           return {
             ...f,
@@ -46,10 +37,10 @@ export function HiddenCharts() {
             <div
               class="test-charts"
               key={group.key}
-              data-test-key={PDF_KEYS[group.key] || group.key}
+              data-test-key={group.key}
             >
               <Show
-                when={group.key === "kons/kons 180/180"}
+                when={group.key === "kons180"}
                 fallback={<AverageChart listOfParsedCTM={() => group.files} errorBands={true} showHQ={false} svgWidth={450} svgHeight={320} />}
               >
                 <EnduranceWorkCharts listOfParsedCTM={() => group.files} />

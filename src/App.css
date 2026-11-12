@@ -24,3 +24,31 @@
 .read-the-docs {
   color: #888;
 }
+
+.torque-comparison-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+.torque-comparison-row > div > svg {
+  width: 100%;
+  height: auto;
+}
+.peak-comparisons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  font-family: Helvetica, Arial, sans-serif;
+  color: #2a3940;
+}
+.peak-comparisons-hq { grid-template-columns: 160px; justify-content: center; }
+.peak-comparison-card { min-width: 0; overflow-x: auto; }
+.peak-comparison-card svg { width: 100%; min-width: 148px; fill: #2a3940; display: block; }
+.comparison-reference-caption { min-height: 30px; font-size: 10px; color: #6b7280; line-height: 1.4; margin: 0; text-align: center; }
+.comparison-reference-swatch { display: inline-block; width: 12px; height: 7px; background: #e5e7eb; border-top: 1px dashed #6b7280; margin-right: 4px; }
+@media (max-width: 1199px) {
+  .torque-comparison-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .peak-comparisons { max-width: 320px; width: 100%; margin: 0 auto; }
+}

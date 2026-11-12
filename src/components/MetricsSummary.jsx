@@ -5,16 +5,9 @@ import { referenceValues } from "../data/referenceValues.js";
 import { resolveComparisonSides } from "../utils/comparisonSides.js";
 import { reportMetricIndices } from "../utils/reportMetricDefinitions.js";
 import {referenceNumberText} from "../utils/referenceFormatting.js";
+import {measurementProtocolKey} from "../utils/measurementMetadata.js";
 
-const testKeyForProgram = (programType) => {
-  const program = String(programType ?? "").toLowerCase();
-  if (program.includes("300")) return "kons300";
-  if (program.includes("240")) return "kons240";
-  if (program.includes("180")) return "kons180";
-  if (program.includes("30")) return "eks30";
-  if (program.includes("60")) return "kons60";
-  return null;
-};
+const testKeyForProgram = measurementProtocolKey;
 
 const metrics = [
   { label: "Huippuvääntö", unit: "Nm", metric: "torque", refExt: "torqueExt", refFlex: "torqueFlex" },

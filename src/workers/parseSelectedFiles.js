@@ -1,4 +1,5 @@
 import { CTMUtils } from "../utils/utils";
+import {readMeasurementFile} from "../utils/measurementText.js";
 
 // Parse files for graph handling
 onmessage = async (message) => {
@@ -18,7 +19,7 @@ onmessage = async (message) => {
     const { fileHandler } = filesToParse[i];
     if (fileHandler.kind === "file") {
       const file = await fileHandler.getFile();
-      const text = await file.text();
+      const text = await readMeasurementFile(file);
       const disabledList = disabledRepetitions[file.name] || {};
       const rawObject = CTMUtils.parseTextToObject(
         text,

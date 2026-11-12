@@ -6,7 +6,9 @@ import tickIcon from "../assets/icons/tick.png";
 import crossIcon from "../assets/icons/delete.png";
 import { numberUtils } from "./utils";
 import {referenceValues} from "../data/referenceValues.js";
+import {reportChartSize, reportFilename, reportReferenceSource} from "./reportExport.js";
 import {reportMetricIndices} from "./reportMetricDefinitions.js";
+import {groupReportFiles} from "./measurementMetadata.js";
 import {reportRows, reportLegLabels} from "./reportRows.js";
 export {reportRows} from "./reportRows.js";
 import {resolveComparisonSides} from "./comparisonSides.js";
@@ -110,22 +112,22 @@ const TESTS = [
   {
     key: "kons60",
     title: "Maksimivoima",
-    match: "oj/kouk 500 Nm isokin. ballistinen kons/kons 60/60",
   },
   {
     key: "kons240",
     title: "Nopeusvoima",
-    match: "oj/kouk 500 Nm isokin. ballistinen kons/kons 240/240",
   },
   {
     key: "eks30",
     title: "Jarruttava voima",
-    match: "oj/kouk 500 Nm isokin. ballistinen eks/eks 30/30",
+  },
+  {
+    key: "eks60",
+    title: "Jarruttava voima (60°/s)",
   },
   {
     key: "kons180",
     title: "Kestovoima",
-    match: "oj/kouk 500 Nm isokin. ballistinen kons/kons 180/180",
   },
 ];
 
@@ -133,6 +135,7 @@ const DETAIL_PROTOCOLS = {
   kons60: ["Mittaus: konsentrinen 60°/s, 3 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
   kons240: ["Mittaus: konsentrinen 240°/s, 3 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
   eks30: ["Mittaus: eksentrinen 30°/s, 2 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
+  eks60: ["Mittaus: eksentrinen 60°/s, 2 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
   kons180: ["Mittaus: konsentrinen 180°/s, 20 toistoa, ballistinen tila.", "Suodatus: painovoimakorjaus, alipäästösuodatus, kitkakompensointi"],
 };
 
@@ -194,8 +197,8 @@ function drawRowStatus(pdf, cell, row) {
 
   if (row.isHq) {
     if (!row.hasReference) return;
-    drawIcon(statusFor(row.referenceStatus), cell.x + cell.width / 2 - 3.2);
-    drawIcon(statusFor(row.involvedStatus), cell.x + cell.width / 2 + 3.2);
+    if (row.cells[1] !== "–") drawIcon(statusFor(row.referenceStatus), cell.x + cell.width / 2 - 3.2);
+    if (row.cells[3] !== "–") drawIcon(statusFor(row.involvedStatus), cell.x + cell.width / 2 + 3.2);
     return;
   }
   if (!hasStatusBasis) return;
@@ -227,7 +230,7 @@ function renderReportTable(pdf, rows, startY, x = 10, framed = false, involvedSi
   autoTable(pdf, {
     startY,
     margin: {left: x},
-    head: [["Mittari", legs.reference, "", legs.involved, "Symmetria %", "Viitearvo\n(keskiarvo ± SD)", "Status"]],
+    head: [["Mittari", legs.reference, "", legs.involved, "Symmetria %", rows.some(row => row.hasReference) ? "Viitearvo*\n(keskiarvo ± SD)" : "Viitearvo\n(keskiarvo ± SD)", "Status"]],
     body: rows.map((row) => row.cells ?? row),
     theme: "plain",
     tableWidth: 162,
@@ -315,7 +318,7 @@ function renderReportCard(pdf, {title, key, test, referenceSet, operated, x, y})
 }
 
 function svgToPng(svgElement) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     // serialize SVG to string
     const svgData = new XMLSerializer().serializeToString(svgElement);
     // Determine dimensions and scale for higher-res PNG
@@ -323,10 +326,10 @@ function svgToPng(svgElement) {
       parseFloat(svgElement.getAttribute("width")) || svgElement.clientWidth;
     const height =
       parseFloat(svgElement.getAttribute("height")) || svgElement.clientHeight;
-    const scale = 3;
+    const pixels = reportChartSize(width, height);
     const canvas = document.createElement("canvas");
-    canvas.width = width * scale;
-    canvas.height = height * scale;
+    canvas.width = pixels.width;
+    canvas.height = pixels.height;
     const ctx = canvas.getContext("2d");
     // Create image from SVG string
     const svgBlob = new Blob([svgData], {
@@ -336,10 +339,17 @@ function svgToPng(svgElement) {
     const img = new Image();
 
     img.onload = () => {
-      ctx.scale(scale, scale);
+      // Opaque white removes the PNG alpha mask; keep PNG lossless, not JPEG.
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(canvas.width / width, canvas.height / height);
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
       resolve({ dataUrl: canvas.toDataURL("image/png"), width, height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Unable to render report chart"));
     };
     img.src = url;
   });
@@ -375,7 +385,7 @@ function drawColorKey(pdf) {
 }
 
 export async function generatePDF() {
-  const pdf = new jsPDF({orientation: "portrait", unit: "mm", format: "a4"});
+  const pdf = new jsPDF({orientation: "portrait", unit: "mm", format: "a4", compress: true, putOnlyUsedFonts: true});
   setReportLanguage(pdf);
   // Capture both language and chart text before the first asynchronous image
   // conversion so changing the UI language cannot produce a mixed-language PDF.
@@ -400,22 +410,9 @@ export async function generatePDF() {
     referenceValues: profile.referenceValues || sourcePatientInfo.referenceValues,
   };
   // group analysis data by test type and side
-  const groups = {};
-  for (const f of files) {
-    const name = f.rawObject.measurement.name;
-    const side = f.rawObject.configuration.side[1];
-    const analysis = f.rawObject.analysis;
-
-    if (!numberUtils.isNumber(analysis[110])) {
-      continue;
-    }
-
-    for (const { key, match } of TESTS) {
-      if (name.includes(match)) {
-        groups[key] ??= {};
-        groups[key][side] = analysis;
-      }
-    }
+  const groups = groupReportFiles(files, TESTS.map(test => test.key));
+  if (!Object.keys(groups).length) {
+    throw new Error(reportText(pdf, "Valituista mittauksista ei löytynyt raportoitavia tuloksia."));
   }
 
   let y = 0;
@@ -515,7 +512,7 @@ export async function generatePDF() {
 
     const pngs = [];
     {
-      for (const svg of chartSnapshots[testDef.key]) {
+      for (const svg of chartSnapshots[testDef.key].slice(0, 2)) {
         const { dataUrl, width, height } = await svgToPng(svg);
         pngs.push({ dataUrl, width, height });
       }
@@ -527,7 +524,7 @@ export async function generatePDF() {
     pngs.slice(0, 2).forEach(({dataUrl, width, height}, index) => {
       // Both complete chart images fit inside the header's 10–200 mm span.
       // Adjacent image frames reduce the gap without overlapping axis labels.
-      pdf.addImage(dataUrl, "PNG", 10 + index * 95, 56, 95, 95 * height / width);
+      pdf.addImage(dataUrl, "PNG", 10 + index * 95, 56, 95, 95 * height / width, undefined, "FAST");
     });
 
     // One unified clinical table per detail page. The former small statistics
@@ -542,14 +539,17 @@ export async function generatePDF() {
       operated,
     );
   }
-  const patientMeasurements = files[0].rawObject.measurement;
-  const rawDate = String(patientMeasurements["date(dd/mm/yyyy)"] ?? "");
-  const [dd, mm, yyyy] = rawDate.split(/[./-]/);
-  const formattedDate = yyyy && mm && dd ? `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}` : "mittaus";
-  const subjectId = String(patientInfo.subjectId ?? "").trim();
-  const firstName = String(patientInfo.subjectNameFirst ?? "").trim().toLowerCase();
-  const lastName = String(patientInfo.subjectName ?? "").trim().toLowerCase();
-  const filePrefix = (subjectId || [firstName, lastName].filter(Boolean).join("-") || "contrex-reporting")
-    .replace(/[\\/:*?"<>|]/g, "-");
-  pdf.save(`${filePrefix}_${formattedDate}.pdf`);
+  const source = reportReferenceSource(referenceSet, text => reportText(pdf, text));
+  if (source) {
+    for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
+      pdf.setPage(page);
+      pdf.setFont("Helvetica", "normal");
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(95, 105, 110);
+      const citation = `* ${reportText(pdf, "Viitearvot")}: ${reportText(pdf, source)}`;
+      const lines = pdf.splitTextToSize(citation, 190);
+      pdf.text(lines, 10, 291 - (lines.length - 1) * 3);
+    }
+  }
+  pdf.save(reportFilename(patientInfo, files[0].rawObject.measurement["date(dd/mm/yyyy)"]));
 }

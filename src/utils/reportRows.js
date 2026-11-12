@@ -5,7 +5,7 @@ import {mixedRatio, reportMetricIndices, movementChannelMetricIndices, isEccentr
 const reportColors = {ink: [42, 57, 64]};
 
 const getVal = (data, idx) => {
-  if (!data || typeof data[idx] !== "number") return "–";
+  if (!data || !Number.isFinite(data[idx])) return "–";
   return padRoundDecimalsToLength(Math.abs(data[idx]), 3);
 };
 
@@ -145,7 +145,7 @@ export function reportRows(testKey, group, referenceSet, operated, allGroups = {
     ...makeSection("Takareisi", definitionsFor(hamstringsIndices, "Flex")),
   ];
 
-  if (isEccentric) {
+  if (isEccentric && testKey === "eks30") {
     const concentric240 = allGroups?.kons240;
     const rightMixed = mixedRatio(right?.[hamstringsIndices.torque], concentric240?.right?.[110]);
     const leftMixed = mixedRatio(left?.[hamstringsIndices.torque], concentric240?.left?.[110]);

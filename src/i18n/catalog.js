@@ -1,5 +1,13 @@
 // Finnish display text is the key. Stored values and CTM metadata are never translated.
 export const english = {
+  "Palkkivertailu": "Bar comparison",
+  "Huippuväännön HQ-suhde": "Peak torque H/Q ratio",
+  "Ei viitearvoa": "No reference value",
+  "Viite: keskiarvo ± SD": "Reference: mean ± SD",
+  "Jarruttava voima (60°/s)": "Eccentric strength (60°/s)",
+  "Mittaus: eksentrinen 60°/s, 2 toistoa, ballistinen tila.": "Measurement: eccentric 60°/s, 2 repetitions, ballistic mode.",
+  "Valituista mittauksista ei löytynyt raportoitavia tuloksia.": "No reportable results were found in the selected measurements.",
+  "Viitearvo*\n(keskiarvo ± SD)": "Reference value*\n(mean ± SD)",
   "Kieli": "Language", "Tiedostot": "Files", "Tulosta": "Print report",
   "Valitse kansio": "Select folder", "Valitse tiedostot painamalla yllä olevaa painiketta.": "Select files using the button above.",
   "Lataa": "Load", "Poista": "Remove", "Hae": "Search", "Etunimi": "First name", "Sukunimi": "Last name",

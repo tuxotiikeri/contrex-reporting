@@ -1,3 +1,5 @@
+import {measurementProtocolKey} from "./measurementMetadata.js";
+
 const normalizeSide = (side) => {
   const value = String(side ?? "").toLowerCase();
   if (value === "left" || value.includes("vasen")) return "left";
@@ -21,7 +23,7 @@ export function resolveComparisonSides(involvedSide, files = []) {
   }
 
   const kons60 = files.filter((file) =>
-    String(file?.rawObject?.programType ?? file?.measurementType ?? "").includes("kons/kons 60/60"),
+    measurementProtocolKey(file) === "kons60",
   );
   const right = kons60.find((file) => file.legSide === "right" || file?.rawObject?.configuration?.side?.[1] === "right");
   const left = kons60.find((file) => file.legSide === "left" || file?.rawObject?.configuration?.side?.[1] === "left");

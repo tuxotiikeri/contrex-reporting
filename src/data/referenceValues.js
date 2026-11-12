@@ -2,6 +2,18 @@
 // populations can be added without changing the rendering code.
 import {liuReferenceValues} from "./liuReferenceValues.js";
 
+// Alhammoud et al. (2019), Table 3 (Nm/kg): quadriceps -60°/s,
+// hamstrings -90°/s. At the user's explicit request, these same source values
+// are used for both -30°/s and -60°/s lab tests. Keep source speeds for audit.
+const alpineEccentricWomen = {
+  bwExt: {mean: 3.56, sd: 0.54, sourceSpeed: 60},
+  bwFlex: {mean: 1.82, sd: 0.22, sourceSpeed: 90},
+};
+const alpineEccentricMen = {
+  bwExt: {mean: 4.27, sd: 0.65, sourceSpeed: 60},
+  bwFlex: {mean: 2.19, sd: 0.33, sourceSpeed: 90},
+};
+
 export const referenceValues = {
   "Miehet maantiepyöräily, kilpailutaso (tutkimusviite)": {
     label: "Miesmaantiepyöräilijät, kilpailutaso",
@@ -119,6 +131,8 @@ export const referenceValues = {
     source: "Alhammoud et al. (2019), elite-alppihiihtäjät, naiset.",
     metrics: {
       kons60: { bwExt: { mean: 2.77, sd: 0.21 }, bwFlex: { mean: 1.38, sd: 0.18 }, hq: { mean: 50, sd: 7 } },
+      eks30: alpineEccentricWomen,
+      eks60: alpineEccentricWomen,
       kons180: { bwExt: { mean: 1.97, sd: 0.19 }, bwFlex: { mean: 1.09, sd: 0.13 }, hq: { mean: 56, sd: 7 } },
     },
   },
@@ -127,10 +141,24 @@ export const referenceValues = {
     source: "Alhammoud et al. (2019), elite-alppihiihtäjät, miehet.",
     metrics: {
       kons60: { bwExt: { mean: 3.35, sd: 0.50 }, bwFlex: { mean: 1.71, sd: 0.22 }, hq: { mean: 52, sd: 7 } },
+      eks30: alpineEccentricMen,
+      eks60: alpineEccentricMen,
       kons180: { bwExt: { mean: 2.37, sd: 0.34 }, bwFlex: { mean: 1.29, sd: 0.16 }, hq: { mean: 55, sd: 6 } },
     },
   },
   ...liuReferenceValues,
 };
+
+// DOIs identify the original publications; each group's n remains in its
+// own source caption. Liu's DOI is stored with its age-group data.
+for (const reference of Object.values(referenceValues)) {
+  if (reference.source.startsWith("van Melick et al. (2022)")) {
+    reference.doi = "10.2519/jospt.2022.10693";
+  } else if (reference.source.startsWith("Rannama et al. (2013)")) {
+    reference.doi = "10.4100/jhse.2012.8.Proc2.03";
+  } else if (reference.source.startsWith("Alhammoud et al. (2019)")) {
+    reference.doi = "10.1055/a-0850-0016";
+  }
+}
 
 export const referenceValueOptions = Object.keys(referenceValues);

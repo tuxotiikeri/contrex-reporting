@@ -29,6 +29,7 @@ import {reconcile} from "solid-js/store";
 import {IconButton} from "./ui/IconButton.jsx";
 import {Checkbox} from "./ui/Checkbox.jsx";
 import {referenceValueOptions, referenceValues} from "../data/referenceValues.js";
+import {normalizeSubjectSex} from "../utils/measurementMetadata.js";
 
 export function Sidebar() {
   const {activeFiles} = useGlobalContext();
@@ -54,9 +55,7 @@ export function Sidebar() {
 
     setPatientProfile({
       sessionKey,
-      sex: Array.isArray(session.subjectSex)
-        ? session.subjectSex.at(-1)
-        : session.subjectSex ?? "",
+      sex: normalizeSubjectSex(session.subjectSex),
       involvedSide: String(session.involvedSide ?? "").includes("vasen")
         ? "vasen"
         : String(session.involvedSide ?? "").includes("oikea")

@@ -6,6 +6,7 @@ import {AverageChart} from "./AverageChart.jsx";
 import {ThreeCharts} from "./ThreeCharts.jsx";
 import {useGlobalContext} from "../providers.js";
 import {MetricsSummary} from "./MetricsSummary.jsx";
+import {PeakComparisonCharts} from "./PeakComparisonCharts.jsx";
 import {Button} from "./ui/Button.jsx";
 import {
   parsedFileData,
@@ -53,15 +54,14 @@ export function FileManager() {
       <FileBrowser/>
       <div class="bg-white rounded-lg flex-1 overflow-auto">
         <div class="w-full h-full space-y-4 grid place-items-center items-start p-8">
-          <div class="flex w-full flex-wrap items-start justify-center gap-4">
-            <div class="min-w-0">
-              <AverageChart
-                listOfParsedCTM={activeFiles}
-                errorBands={showErrorBands()}
-              />
-            </div>
-            <MetricsSummary listOfParsedCTM={activeFiles} programType={activeProgram()} />
+          <div class="w-full min-w-0">
+            <AverageChart
+              listOfParsedCTM={activeFiles}
+              errorBands={showErrorBands()}
+              comparisonFor={muscle => <PeakComparisonCharts listOfParsedCTM={activeFiles} muscle={muscle} />}
+            />
           </div>
+          <MetricsSummary listOfParsedCTM={activeFiles} programType={activeProgram()} />
           <Show when={activeFiles()[activeFileIndex()]}>
             {(activeFile) => (
               <>

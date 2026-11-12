@@ -1,5 +1,6 @@
 import { asserts } from "../collections/collections";
 import { CTMUtils } from "./utils";
+import {decodeMeasurementBuffer} from "./measurementText.js";
 
 export const generateFileAndDownload = (data, filename, type) => {
   asserts.assertTypeString(data);
@@ -47,8 +48,7 @@ export const formatToCSV = (table, columns) => {
 export const fetchCTMFileWithName = async (fileName) => {
   const response = await fetch("./" + fileName);
   const buffer = await response.arrayBuffer();
-  const decoder = new TextDecoder("ISO-8859-1");
-  return decoder.decode(buffer);
+  return decodeMeasurementBuffer(buffer);
 };
 
 export const askForFileAccess = async (
