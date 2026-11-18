@@ -145,7 +145,7 @@ export function reportRows(testKey, group, referenceSet, operated, allGroups = {
     ...makeSection("Takareisi", definitionsFor(hamstringsIndices, "Flex")),
   ];
 
-  if (isEccentric && testKey === "eks30") {
+  if (isEccentric) {
     const concentric240 = allGroups?.kons240;
     const rightMixed = mixedRatio(right?.[hamstringsIndices.torque], concentric240?.right?.[110]);
     const leftMixed = mixedRatio(left?.[hamstringsIndices.torque], concentric240?.left?.[110]);

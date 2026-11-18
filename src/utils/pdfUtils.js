@@ -8,6 +8,8 @@ import { numberUtils } from "./utils";
 import {referenceValues} from "../data/referenceValues.js";
 import {reportChartSize, reportFilename, reportReferenceSource} from "./reportExport.js";
 import {reportMetricIndices} from "./reportMetricDefinitions.js";
+import {reportBarComparisons} from "./reportBarComparisons.js";
+import {drawPdfComparisonBars} from "./pdfComparisonBars.js";
 import {groupReportFiles} from "./measurementMetadata.js";
 import {reportRows, reportLegLabels} from "./reportRows.js";
 export {reportRows} from "./reportRows.js";
@@ -529,7 +531,8 @@ export async function generatePDF() {
 
     // One unified clinical table per detail page. The former small statistics
     // table is intentionally merged under the relevant muscle heading here.
-    const tableY = 136;
+    drawPdfComparisonBars(pdf, reportBarComparisons(testDef.key, group, referenceSet, operated, groups));
+    const tableY = 195;
     renderReportTable(
       pdf,
       reportRows(testDef.key, group, referenceSet, operated, groups, {includeDetails: true}),

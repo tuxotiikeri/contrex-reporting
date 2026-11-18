@@ -20,7 +20,7 @@ test("alpine 30 and 60 eccentric tests use the same approved muscle-specific ref
       assert.equal(bw[1].cells[5], `${hMean} ± ${hSd}`);
       assert.equal(bw[0].hasReference, true);
       assert.equal(bw[1].hasReference, true);
-      assert.equal(rows.at(-1).cells[0], protocol === "eks30" ? "Mixed-ratio (%)" : "HQ-ratio (%)");
+      assert.equal(rows.at(-1).cells[0], "Mixed-ratio (%)");
     }
   }
   assert.equal(measurementProtocolKey("Ecc/Ecc 60/60"), "eks60");
