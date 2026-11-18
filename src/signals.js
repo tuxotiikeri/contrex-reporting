@@ -1,5 +1,5 @@
 import { batch, createSignal, untrack } from "solid-js";
-import { createStore, produce } from "solid-js/store";
+import { createStore, produce, reconcile } from "solid-js/store";
 import { signals } from "./collections/collections";
 
 export const [parsedFileData, setParsedFileData] = createSignal([]);
@@ -27,7 +27,7 @@ export const [gravityCorrection, setGravityCorrection] =
 export const [sessionFilters, storeSessionFilters] = createStore({});
 export const [activeProgram, setActiveProgram] = createSignal(null);
 export const [showErrorBands, setShowErrorBands] = createSignal(true);
-export const [patientProfile, setPatientProfile] = createSignal({
+const emptyPatientProfile = () => ({
   sessionKey: null,
   sex: "",
   involvedSide: "",
@@ -35,6 +35,7 @@ export const [patientProfile, setPatientProfile] = createSignal({
   additionalComment: "",
   referenceValues: "Ei käytössä",
 });
+export const [patientProfile, setPatientProfile] = createSignal(emptyPatientProfile());
 export const [$hoveredRepetition, storeHoveredRepetition] = createStore({
   fileIndex: -1,
   repetitionIndex: -1,
@@ -42,6 +43,21 @@ export const [$hoveredRepetition, storeHoveredRepetition] = createStore({
 export const [activeFileIndex, setActiveFileIndex] = createSignal(0);
 
 export const openSessionsMemory = {};
+
+// Close the whole measurement workspace, not only the active protocol/leg.
+// Keep folder access, search filters and processing preferences available.
+export function resetMeasurementSelection() {
+  batch(() => {
+    setSelectedFiles([]);
+    setParsedFileData([]);
+    setDisabledRepetitions({});
+    storeSelectedSessionsCounts(reconcile({}));
+    setActiveProgram(null);
+    setActiveFileIndex(0);
+    storeHoveredRepetition({fileIndex: -1, repetitionIndex: -1});
+    setPatientProfile(emptyPatientProfile());
+  });
+}
 
 export const toggleSelectedFile = (sessionId, selectedFile) => {
   const alreadySelected = selectedFiles().some(

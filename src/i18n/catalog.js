@@ -1,5 +1,7 @@
 // Finnish display text is the key. Stored values and CTM metadata are never translated.
 export const english = {
+  "Avaa valitut tiedostot": "Open selected files",
+  "Sulje kaikki tiedostot": "Close all files",
   "Harmaa alue: viitearvon vaihteluväli; katkoviiva: viitetaso.": "Grey band: reference range; dashed line: reference level.",
   "Palkkivertailu": "Bar comparison",
   "Huippuväännön HQ-suhde": "Peak torque H/Q ratio",

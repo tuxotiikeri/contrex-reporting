@@ -17,13 +17,15 @@ import {
   onMount,
   Show,
 } from "solid-js";
-import {createStore, reconcile, unwrap} from "solid-js/store";
+import {createStore, unwrap} from "solid-js/store";
 import {fileUtils, indexedDBUtils} from "../utils/utils";
 import {
   $selectedSessionsCounts,
   dataFiltering,
   gravityCorrection,
   patientProfile,
+  parsedFileData,
+  resetMeasurementSelection,
   disabledRepetitions,
   files,
   filterByFirstName,
@@ -49,23 +51,17 @@ import {
   setParsedFileData,
   setRecentFolders,
   setSafeMode,
-  setSelectedFiles,
   setSessions,
-  storeSelectedSessionsCounts,
   storeSessionFilters,
   openSessionsMemory,
   toggleSelectedFile,
-  setDisabledRepetitions,
 } from "../signals";
-import {useGlobalContext} from "../providers";
 import {Button} from "./ui/Button.jsx";
 import {Dropdown} from "./ui/Dropdown.jsx";
 import {LanguageSelector} from "./LanguageSelector.jsx";
 import {programLabel} from "../i18n/index.js";
 
 export function FileBrowser() {
-  const {activeFiles} = useGlobalContext();
-
   const translateLegSide = (value) => {
     // English -> Finnish (for display)
     if (value === "left") return "vasen";
@@ -237,7 +233,21 @@ export function FileBrowser() {
   };
 
   let parseSelectedFilesWorker;
+  let parseRequestId = 0;
+  onCleanup(() => {
+    ++parseRequestId;
+    parseSelectedFilesWorker?.terminate();
+    fetchFilesFromFolderWorker?.terminate();
+  });
   createEffect(() => {
+    const requestId = ++parseRequestId;
+    const filesToParse = selectedFiles();
+    if (!filesToParse.length) {
+      parseSelectedFilesWorker?.terminate();
+      parseSelectedFilesWorker = null;
+      setParsedFileData([]);
+      return;
+    }
     if (window.Worker) {
       parseSelectedFilesWorker =
         parseSelectedFilesWorker instanceof Worker
@@ -245,7 +255,8 @@ export function FileBrowser() {
           : new parseSelectedFiles();
 
       parseSelectedFilesWorker.postMessage({
-        filesToParse: selectedFiles(),
+        requestId,
+        filesToParse,
         dataFiltering: dataFiltering(),
         gravityCorrection: gravityCorrection(),
         disabledRepetitions: disabledRepetitions(),
@@ -253,7 +264,7 @@ export function FileBrowser() {
       });
 
       parseSelectedFilesWorker.onmessage = async (message) => {
-        if (message.data.type === "parsedFiles") {
+        if (message.data.type === "parsedFiles" && message.data.requestId === parseRequestId) {
           setParsedFileData(message.data.files);
         }
       };
@@ -296,14 +307,6 @@ export function FileBrowser() {
       setFilterByFirstName(firstNameInput().trim().toLowerCase());
       setFilterByLastName(lastNameInput().trim().toLowerCase());
       setFilterBySubjectId(subjectIdInput().trim().toLowerCase());
-    });
-  };
-
-  const clearSelectedFiles = () => {
-    batch(() => {
-      setSelectedFiles([]);
-      setDisabledRepetitions([]);
-      storeSelectedSessionsCounts(reconcile({}));
     });
   };
 
@@ -714,11 +717,21 @@ export function FileBrowser() {
           {t("Tyhjennä suodatus")}
         </Button>
         <Button
-          variant={activeFiles().length ? "danger" : "secondary"}
+          variant={selectedFiles().length || parsedFileData().length ? "danger" : "secondary"}
           size="xs"
-          onClick={clearSelectedFiles}
+          onClick={resetMeasurementSelection}
+          disabled={!selectedFiles().length && !parsedFileData().length}
         >
-          {t("Sulje valitut tiedostot")}
+          {t("Sulje kaikki tiedostot")}
+        </Button>
+        <Button
+          id="open-selected-files"
+          variant={selectedFiles().length ? "primary" : "secondary"}
+          size="xs"
+          disabled={!selectedFiles().length}
+          onClick={() => document.querySelector("#file-popup").close()}
+        >
+          {t("Avaa valitut tiedostot")}
         </Button>
       </div>
     );

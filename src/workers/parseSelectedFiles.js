@@ -4,6 +4,7 @@ import {readMeasurementFile} from "../utils/measurementText.js";
 // Parse files for graph handling
 onmessage = async (message) => {
   const {
+    requestId,
     filesToParse,
     dataFiltering,
     gravityCorrection,
@@ -43,6 +44,7 @@ onmessage = async (message) => {
   }
 
   postMessage({
+    requestId,
     type: "parsedFiles",
     files,
   });

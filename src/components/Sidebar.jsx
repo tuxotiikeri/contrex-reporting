@@ -1,14 +1,13 @@
 import { t } from "../i18n/index.js";
 import {FiPrinter, FiHardDrive} from "solid-icons/fi";
-import {batch, createEffect, createMemo, For, Show} from "solid-js";
+import {createEffect, createMemo, For, Show} from "solid-js";
 import {generatePDF} from "../utils/pdfUtils";
 import {ActiveProgramTypeButtons} from "./ActiveProgramTypeButtons.jsx";
 import {
   activeProgram,
   selectedFiles,
-  setSelectedFiles,
+  resetMeasurementSelection,
   storeHoveredRepetition,
-  storeSelectedSessionsCounts,
   dataFiltering,
   setDataFiltering,
   gravityCorrection,
@@ -18,14 +17,12 @@ import {
   activeFileIndex,
   setActiveFileIndex,
   toggleSelectedFile,
-  setDisabledRepetitions,
   patientProfile,
   setPatientProfile,
 } from "../signals.js";
 import {useGlobalContext} from "../providers.js";
 import {Button} from "./ui/Button.jsx";
 import {ListOfFileHandlerRepetitions} from "./ListOfFileHandlerRepetitions.jsx";
-import {reconcile} from "solid-js/store";
 import {IconButton} from "./ui/IconButton.jsx";
 import {Checkbox} from "./ui/Checkbox.jsx";
 import {referenceValueOptions, referenceValues} from "../data/referenceValues.js";
@@ -36,14 +33,6 @@ export function Sidebar() {
 
   const toggleDataFiltering = () => setDataFiltering((s) => !s);
   const toggleGravityCorrection = () => setGravityCorrection((s) => !s);
-
-  const clearSelectedFiles = () => {
-    batch(() => {
-      setSelectedFiles([]);
-      setDisabledRepetitions([]);
-      storeSelectedSessionsCounts(reconcile({}));
-    });
-  };
 
   createEffect(() => {
     const file = activeFiles()[0];
@@ -145,7 +134,7 @@ export function Sidebar() {
               <Button
                 variant="dangerAlt"
                 size="xs"
-                onClick={clearSelectedFiles}
+                onClick={resetMeasurementSelection}
                 class="self-center"
               >
                 {t("Sulje tiedostot")}
