@@ -3,7 +3,28 @@
 const MODE = /(?:^|[^a-z])(kons(?:entrinen)?|con(?:centric)?|eks(?:entrinen)?|ecc(?:entric)?|cpm)(?:\s*\/\s*(kons(?:entrinen)?|con(?:centric)?|eks(?:entrinen)?|ecc(?:entric)?|cpm))?(?=$|[^a-z])/i;
 const canonicalMode = value => /^(kons|con)/i.test(value) ? "kons" : /^(eks|ecc)/i.test(value) ? "eks" : "cpm";
 
+export function isometricProtocol(input) {
+  const raw = input?.rawObject ?? input;
+  const config = raw?.configuration ?? (raw?.program ? raw : null);
+  const texts = typeof raw === "string" ? [raw] : [config?.program?.[1], raw?.programType, input?.measurementType, raw?.measurement?.name];
+  const text = texts.filter(Boolean).join(" ");
+  if (!/(?:isometr(?:inen|ic)?|isom(?=\d|\s|$))/i.test(text)) return null;
+  // The general pattern name contains "oj/kouk" and "500 Nm": neither
+  // identifies the static muscle or position. Read only the isometric phrase.
+  const phrase = text.match(/isometr(?:inen|ic)\s+(oj(?:ennus)?|ext(?:ension)?|kouk(?:istus)?|flex(?:ion)?)(?:\s+(?:at|@))?\s*(-?\d+(?:[.,]\d+)?)?/i);
+  const direction = phrase ? /^(kouk|flex)/i.test(phrase[1]) ? "flexion" : "extension"
+    : config?.program?.[0] === 7 ? "flexion" : config?.program?.[0] === 8 ? "extension" : null;
+  const written = phrase?.[2] ?? text.match(/\bisom(-?\d+(?:[.,]\d+)?)/i)?.[1];
+  const angleValue = config?.position ?? written;
+  if (angleValue == null) return null;
+  const angle = Math.abs(Number(String(angleValue).replace(",", ".")));
+  if (!Number.isFinite(angle)) return null;
+  return {isometric: true, direction, angle, label: `isom${angle}`, key: `isom${angle}`, mode1: "isom", mode2: "isom", speed1: 0, speed2: 0};
+}
+
 export function measurementProtocol(input) {
+  const iso = isometricProtocol(input);
+  if (iso) return iso;
   const raw = input?.rawObject ?? input;
   const config = raw?.configuration ?? (raw?.program ? raw : null);
   const texts = typeof raw === "string" ? [raw] : [

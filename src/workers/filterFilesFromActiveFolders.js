@@ -1,5 +1,6 @@
 import { indexedDBUtils } from "../utils/utils";
 import {readMeasurementFile} from "../utils/measurementText.js";
+import {isometricProtocol} from "../utils/measurementMetadata.js";
 
 onmessage = async (message) => {
   const { activeFolders } = message.data;
@@ -120,6 +121,7 @@ function parseCTMForFiltering(text, fileHandler) {
 
   const sessionNumber = parseCTMForFiltering.sessionMap[sessionKey];
   const sessionId = `Istunto ${sessionNumber}`;
+  const iso = isometricProtocol(measurement.name);
 
   return {
     fileHandler,
@@ -132,8 +134,8 @@ function parseCTMForFiltering(text, fileHandler) {
     subjectId,
     sessionId,
     legSide: parsedFile.legSide,
-    program: parsedFile.program,
-    speed: parsedFile.speed,
+    program: iso?.label ?? parsedFile.program,
+    speed: iso ? "–" : parsedFile.speed,
   };
 }
 
@@ -160,6 +162,6 @@ const extractDataFromString = (data, key) => {
       return values.join("/");
     case "program":
       let lastval = parts[2].split(" ").map((s) => s.trim());
-      return lastval[2];
+      return lastval[2] ?? lastval.join(" ");
   }
 };

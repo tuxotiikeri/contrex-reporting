@@ -6,7 +6,8 @@ import { createMemo } from "solid-js";
 import { GlobalContext } from "./providers.js";
 import { HiddenCharts } from "./components/HiddenCharts.jsx";
 
-import {colors} from "./data/seriesColors.js";
+import {colors, isometricTrialColours} from "./data/seriesColors.js";
+import {isometricProtocol} from "./utils/measurementMetadata.js";
 export {colors} from "./data/seriesColors.js";
 
 function App() {
@@ -21,8 +22,12 @@ function App() {
       right: 0,
     };
 
-    return parsedFileData()
-      .filter(({ rawObject }) => rawObject.programType === program)
+    const matching = parsedFileData().filter(({rawObject}) => rawObject.programType === program);
+    if (isometricProtocol(matching[0])) {
+      const palette = isometricTrialColours(matching);
+      return matching.map((file, index) => ({...file, baseColor: palette[index]}));
+    }
+    return matching
       .map((row) => {
         // Fallback color is blue
         const colorList = colors[row.legSide] ?? colors.fallback;

@@ -4,6 +4,7 @@ import { applyGravityCorrection } from "./gravityCorrection.js";
 import { hqRatioFromChannels } from "./reportMetricDefinitions.js";
 import {measurementProtocol, normalizeSubjectSex} from "./measurementMetadata.js";
 import {peakTorqueMetrics} from "./peakTorqueMetrics.js";
+import {analyzeIsometric} from "./isometricAnalysis.js";
 import {
   createMarkerBasedRepetitionSplits,
   createMovementBasedRepetitionSplits,
@@ -1031,6 +1032,27 @@ const formatRawCTMObject = (
       alreadyApplied: object.compensation.gravityCorrection === 1,
       source: "disabled",
     };
+  }
+
+  // Static contractions have no moving Ext/Flex repetitions. Parse their
+  // original timed window separately; never run the movement-based filter.
+  if (measurementProtocol(object)?.isometric) {
+    object.session = createParsedSectionFromRawObjectSection(rawObject.session);
+    const sex = normalizeSubjectSex(patientProfile?.sex || object.session.subjectSex);
+    if (sex) object.session.subjectSex = [sex === "Mies" ? 1 : sex === "Nainen" ? 2 : 0, sex];
+    if (Number(patientProfile?.weight) > 0) object.session.subjectWeight = Number(patientProfile.weight);
+    object.measurement = createParsedSectionFromRawObjectSection(rawObject.Measurement);
+    object.filter = createParsedSectionFromRawObjectSection(rawObject.filter);
+    object.memo = cleanMemo(rawObject.memo.join("\n"));
+    object.programType = measurementProtocol(object).label;
+    object.isometric = analyzeIsometric(object);
+    const ext = object.isometric.protocol.direction === "extension";
+    object.analysis = {
+      [ext ? 110 : 111]: object.isometric.peak,
+      [ext ? 203 : 204]: object.isometric.peakPerKg,
+    };
+    object.splitCollections = {angle: {splits: []}};
+    return object;
   }
 
   const collections = createCollections(

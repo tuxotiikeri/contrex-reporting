@@ -307,6 +307,30 @@ Raportin Name/Nimi-kentässä voi siis näkyä henkilön nimi, vaikka tallennetu
 
 ## 10. Tavallisia kysymyksiä
 
+### Isometrinen mittaus (isom60)
+
+Isometriset CTM-mittaukset näkyvät tiedostovalinnassa kampikulman mukaan, esimerkiksi **isom60** tarkoittaa 60 asteen polvikulmaa. Ohjelman alkuperäinen nimi säilyy tiedoston tiedoissa. Analyysissä mitatun väännön suunta ratkaisee, kuuluuko yritys etureiden ojennukseen vai takareiden koukistukseen. Väärän ohjelmapainikkeen valinta CON-TREXissä ei siten yksin määrää raportoitavaa lihasta.
+
+`move 1` -merkin alku- ja loppuindeksi rajaavat varsinaisen mittausjakson. Ennen alkumerkkiä käytetään 0,5 sekunnin lepojaksoa vain taustatason ja kohinan arviointiin. Huippuarvo etsitään ainoastaan mittausjakson sisältä. Loppumerkin jälkeistä relaksaatiota ei analysoida.
+
+Kaksi vääntö-aikakuvaajaa näyttävät etureiden ja takareiden yritykset erikseen. Jokainen tiedosto on oma värillinen käyränsä. Toistojen keskiarvoa tai SD-aluetta ei lasketa. Käyrät kohdistetaan voimantuoton alkuun, ja aika-akseli on 0–5 sekuntia. Jos voimantuotto alkaa esimerkiksi sekunnin kuluttua mittausohjelman alusta, mitattua jaksoa on jäljellä noin neljä sekuntia. Käyrää ei jatketa keksityillä näytteillä viiteen sekuntiin.
+
+Alkukohta tunnistetaan mittausjakson sisältä: väännön on ylitettävä lepotaso vähintään **max(0,5 Nm, 3 × levon SD)** vähintään 20 ms:n ajan. Alkukohdaksi valitaan tämän yhtäjaksoisen ylityksen ensimmäinen näyte. Nämä kynnykset ovat sovelluksen menetelmävalintoja. Tarkista nousu **Tarkista alkukohta** -osiosta; alkukohtaa voi siirtää näyte kerrallaan tai antaa sekunteina mittausjakson alusta. **Automaattinen alkukohta** palauttaa tunnistetun kohdan. Käsisäätö ei muuta alkuperäisiä näytteitä eikä koko mittausjakson huippuvääntöä.
+
+Taulukossa ja isometrisen mittauksen PDF-sivulla raportoidaan:
+
+- Yksittäinen suurin huippuvääntö (Nm) ja sama arvo kehonpainoon suhteutettuna (Nm / kg).
+- Vääntö 50, 100 ja 200 ms alkukohdan jälkeen (T50, T100, T200).
+- RTD aikaväleillä 0–50, 0–100 ja 0–200 ms: `(vääntö ajanhetkellä t − vääntö alkukohdassa) / t`. Yksikkö on Nm/s. Väännöstä laskettua nousunopeutta kutsutaan tässä RTD:ksi, ei newtoneina mitatun voiman RFD:ksi.
+
+Isometrinen analyysi käyttää alipäästösuodattamattomia näytteitä ja käyttäjän valitsemaa painovoimakorjausta. Yleinen **Suodatus**-valinta ei muuta isometrisiä tuloksia. Ajankohtien väliin osuvat 50/100/200 ms -arvot interpoloidaan lineaarisesti, mutta tämä ei lisää alkuperäisen mittauksen aikataajuutta. Näytteenottotaajuudella 256 Hz näyteväli on noin 3,9 ms. Erityisesti 50 ms:n RTD on herkkä alkukohdalle; sitä ei pidä rinnastaa korkean näytteenottotaajuuden mittaukseen.
+
+Epävakaa lepotaso, nousua edeltävä vastaliike tai merkittävä vääntö kumpaankin suuntaan merkitään tarkistettavaksi ja RTD jätetään tyhjäksi. Huippuvääntö säilyy näkyvissä. Myös puuttuva aikaikkuna jättää kyseisen RTD-arvon tyhjäksi. Tuloksia ei luokitella hyväksytyiksi tai hylätyiksi RTD-viitearvoilla.
+
+Musta LSI-palkki voidaan piirtää, kun samaan lihakseen on valittu täsmälleen yksi kelvollinen yritys kummastakin jalasta ja vertailusuunta on määritettävissä. Palkki tarkoittaa yli 10 % poikkeamaa 100 %:n LSI:stä. Molempien vääntöjen on oltava yli 5 Nm ja poikkeaman kestettävä vähintään 50 ms. Useita yrityksiä ei pariteta automaattisesti keskenään.
+
+Menetelmän tausta: [Maffiuletti et al. (2016), Rate of force development: physiological and methodological considerations](https://doi.org/10.1007/s00421-016-3346-6). Katsaus korostaa alkukohdan, taustakohinan, suodatuksen ja korkean näytteenottotaajuuden merkitystä. Sovelluksen tunnistus on apuväline, ja nousun silmämääräinen tarkistus kuuluu tulkintaan.
+
 **Miksi käyrä on nollassa ennen 6,5°:ta tai 87°:n jälkeen?**
 Kuvaaja näyttää mittauksen asetetun liikeradan. Sen ulkopuolelle ei jatketa kuormitettua käyrää. Esityksen nollapisteet eivät ole uusia mittaustuloksia.
 

@@ -13,6 +13,7 @@ export const [foldersThatHaveAccess, setFoldersThatHaveAccess] = createSignal(
   [],
 );
 export const [disabledRepetitions, setDisabledRepetitions] = createSignal({});
+export const [isometricOnsets, setIsometricOnsets] = createSignal({});
 export const [filterByLastName, setFilterByLastName] = createSignal("");
 export const [filterByFirstName, setFilterByFirstName] = createSignal("");
 export const [filterBySubjectId, setFilterBySubjectId] = createSignal("");
@@ -51,6 +52,7 @@ export function resetMeasurementSelection() {
     setSelectedFiles([]);
     setParsedFileData([]);
     setDisabledRepetitions({});
+    setIsometricOnsets({});
     storeSelectedSessionsCounts(reconcile({}));
     setActiveProgram(null);
     setActiveFileIndex(0);

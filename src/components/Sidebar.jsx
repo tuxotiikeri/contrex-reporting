@@ -26,7 +26,7 @@ import {ListOfFileHandlerRepetitions} from "./ListOfFileHandlerRepetitions.jsx";
 import {IconButton} from "./ui/IconButton.jsx";
 import {Checkbox} from "./ui/Checkbox.jsx";
 import {referenceValueOptions, referenceValues} from "../data/referenceValues.js";
-import {normalizeSubjectSex} from "../utils/measurementMetadata.js";
+import {normalizeSubjectSex, isometricProtocol} from "../utils/measurementMetadata.js";
 
 export function Sidebar() {
   const {activeFiles} = useGlobalContext();
@@ -113,23 +113,23 @@ export function Sidebar() {
           <div class="flex flex-col gap-3 border border-gray-200 rounded-lg p-4">
             <div class="flex items-center justify-between">
               <div class="flex flex-col gap-2">
-                <Checkbox
+                <Show when={!isometricProtocol(activeFiles()[0])}><Checkbox
                   id="dataFiltering"
                   label={t("Suodatus")}
                   checked={dataFiltering()}
                   onChange={toggleDataFiltering}
-                />
+                /></Show>
                 <Checkbox
                   id="gravityCorrection"
                   label={t("Painovoimakorjaus")}
                   checked={gravityCorrection()}
                   onChange={toggleGravityCorrection}
                 />
-                <Checkbox
+                <Show when={!isometricProtocol(activeFiles()[0])}><Checkbox
                   label={t("Hajontakuvio")}
                   checked={showErrorBands()}
                   onChange={() => setShowErrorBands((s) => !s)}
-                />
+                /></Show>
               </div>
               <Button
                 variant="dangerAlt"
@@ -301,7 +301,7 @@ function ActiveFilesAndRepetitions() {
       </div>
 
       {/* Repetitions box */}
-      <div class="border border-gray-200 rounded-lg p-4">
+      <Show when={!isometricProtocol(activeFile())}><div class="border border-gray-200 rounded-lg p-4">
         <p class="text-center font-medium">
           {activeFile().name} {activeFile().time}
         </p>
@@ -315,7 +315,7 @@ function ActiveFilesAndRepetitions() {
             <ListOfFileHandlerRepetitions fileHandler={activeFile()}/>
           </ul>
         </div>
-      </div>
+      </div></Show>
     </div>
   );
 }

@@ -1,4 +1,7 @@
-import { parsedFileData, patientProfile } from "../signals";
+import { parsedFileData, patientProfile, isometricOnsets } from "../signals";
+import {isometricProtocol} from "./measurementMetadata.js";
+import {colouredIsometricSeries, isoTrialLabel} from "../components/IsometricView.jsx";
+import {appendIsometricPages} from "./isometricReport.js";
 import { jsPDF } from "jspdf";
 import {localizedAutoTable as autoTable, reportText, setReportLanguage} from "../i18n/pdf.js";
 import { symmetryPercent, padRoundDecimalsToLength } from "./numberUtils";
@@ -56,7 +59,7 @@ function addPatientInfo(pdf, patientInfo, files, detailTest = null) {
     pdf.text(title.slice(brand.length).trim(), brandEnd, 19);
     pdf.setFontSize(6.8);
     pdf.setTextColor(95, 105, 110);
-    DETAIL_PROTOCOLS[detailTest.key].forEach((line, index) => {
+    (detailTest.lines ?? DETAIL_PROTOCOLS[detailTest.key]).forEach((line, index) => {
       const translated = reportText(pdf, line);
       const colon = translated.indexOf(":");
       drawLabelValue(pdf, translated.slice(0, colon + 1), translated.slice(colon + 1).trim(), 10, 28 + index * 5);
@@ -397,6 +400,12 @@ export async function generatePDF() {
   ]));
   pdf.setFontSize(11);
   const files = parsedFileData();
+  if (!files.length) throw new Error(reportText(pdf, "Valituista mittauksista ei löytynyt raportoitavia tuloksia."));
+  const staticGroups = [...new Set(files.map(f => isometricProtocol(f)?.key).filter(Boolean))].map(key => ({
+    key,
+    series: colouredIsometricSeries(files.filter(f => isometricProtocol(f)?.key === key), isometricOnsets()).map(item => ({...item, label: isoTrialLabel(item)})),
+    charts: [...document.querySelectorAll(`#all-charts-export .isometric-charts[data-test-key="${key}"] svg`)].map(svg => svg.cloneNode(true)),
+  }));
   const sourcePatientInfo = files[0].rawObject.session;
   const sourceMeasurement = files[0].rawObject.measurement ?? {};
   const profile = patientProfile();
@@ -413,7 +422,7 @@ export async function generatePDF() {
   };
   // group analysis data by test type and side
   const groups = groupReportFiles(files, TESTS.map(test => test.key));
-  if (!Object.keys(groups).length) {
+  if (!Object.keys(groups).length && !staticGroups.length) {
     throw new Error(reportText(pdf, "Valituista mittauksista ei löytynyt raportoitavia tuloksia."));
   }
 
@@ -425,6 +434,7 @@ export async function generatePDF() {
     : comparison.involvedSide === "right" ? "oikea" : null;
 
   const reportTests = TESTS.filter(({key}) => Boolean(groups[key]));
+  if (reportTests.length) {
   addPatientInfo(pdf, patientInfo, files);
   y = 55;
   reportTests.forEach(({key, title}) => {
@@ -448,6 +458,7 @@ export async function generatePDF() {
     pdf.roundedRect(10, tableStartY, 162, endY - tableStartY + 1.5, 2, 2, "S");
     y = endY + 10;
   });
+  }
 
   // Calculate mixed ratio for kons240 + eks30
   const kons240 = groups["kons240"];
@@ -542,9 +553,18 @@ export async function generatePDF() {
       operated,
     );
   }
+  const dynamicPageCount = reportTests.length ? pdf.getNumberOfPages() : 0;
+  await appendIsometricPages(pdf, staticGroups, {
+    firstPageAvailable: !reportTests.length,
+    addHeader: group => addPatientInfo(pdf, patientInfo, group.series.map(item => item.file), {
+      title: "Isometrinen voima", key: group.key,
+      lines: [`${reportText(pdf, "Mittaus")}: ${group.series[0].result.protocol.angle}°, ${reportText(pdf, "isometrinen")}, 5 s.`, `${reportText(pdf, "Suodatus")}: ${reportText(pdf, "Alipäästösuodattamaton isometrinen data")}`],
+    }),
+    svgToPng,
+  });
   const source = reportReferenceSource(referenceSet, text => reportText(pdf, text));
   if (source) {
-    for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
+    for (let page = 1; page <= dynamicPageCount; page++) {
       pdf.setPage(page);
       pdf.setFont("Helvetica", "normal");
       pdf.setFontSize(6.5);

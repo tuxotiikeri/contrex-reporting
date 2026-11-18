@@ -7,6 +7,8 @@ import {ThreeCharts} from "./ThreeCharts.jsx";
 import {useGlobalContext} from "../providers.js";
 import {MetricsSummary} from "./MetricsSummary.jsx";
 import {PeakComparisonCharts} from "./PeakComparisonCharts.jsx";
+import {IsometricView} from "./IsometricView.jsx";
+import {isometricProtocol} from "../utils/measurementMetadata.js";
 import {Button} from "./ui/Button.jsx";
 import {
   parsedFileData,
@@ -54,6 +56,7 @@ export function FileManager() {
       <FileBrowser/>
       <div class="bg-white rounded-lg flex-1 overflow-auto">
         <div class="w-full h-full space-y-4 grid place-items-center items-start p-8">
+          <Show when={isometricProtocol(activeFiles()[0])} fallback={<>
           <div class="w-full min-w-0">
             <AverageChart
               listOfParsedCTM={activeFiles}
@@ -92,6 +95,7 @@ export function FileManager() {
               </>
             )}
           </Show>
+          </>}><IsometricView listOfParsedCTM={activeFiles} /></Show>
         </div>
       </div>
     </div>
