@@ -3,6 +3,7 @@ import { arrayUtils, numberUtils, stringUtils } from "./utils";
 import { applyGravityCorrection } from "./gravityCorrection.js";
 import { hqRatioFromChannels } from "./reportMetricDefinitions.js";
 import {measurementProtocol, normalizeSubjectSex} from "./measurementMetadata.js";
+import {peakTorqueMetrics} from "./peakTorqueMetrics.js";
 import {
   createMarkerBasedRepetitionSplits,
   createMovementBasedRepetitionSplits,
@@ -632,8 +633,7 @@ const createRepetitionsSection = (points, splits, sampleRate) => {
 // Computes summary metrics from repetitions
 const createAnalysis = (repetitions, weight) => {
   return {
-    110: arrayUtils.maxValue(repetitions.torquePeak1),
-    111: arrayUtils.minValue(repetitions.torquePeak2),
+    ...peakTorqueMetrics(repetitions, weight),
     112: arrayUtils.average(repetitions.torquePeak1),
     113: arrayUtils.average(repetitions.torquePeak2),
     114: arrayUtils.average(repetitions.torquePeakPos1),
@@ -679,11 +679,6 @@ const createAnalysis = (repetitions, weight) => {
       (arrayUtils.average(repetitions.powerAvg2) /
         arrayUtils.average(repetitions.powerAvg1)) *
       100,
-    203: arrayUtils.maxValue(repetitions.torquePeak1) / weight,
-    // Flexion torque peaks are stored with a negative sign. Use the most
-    // negative individual peak so Nm/kg represents the same best repetition
-    // as the displayed flexion peak torque (analysis index 111).
-    204: arrayUtils.minValue(repetitions.torquePeak2) / weight,
     205: arrayUtils.average(repetitions.work1) / weight,
     206: arrayUtils.average(repetitions.work2) / weight,
     207: arrayUtils.average(repetitions.powerAvg1) / weight,
