@@ -132,8 +132,21 @@ export const referenceValues = {
   "Naiset käsipallo, elite": {
     label: "Naiset käsipallo, elite",
     source: "van Melick et al. (2022), scoping review. Female elite, n=293.",
+    protocolSources: {
+      kons60: {
+        source: "Risberg et al. (2018), kons60, n=143; dominoivan jalan viite.",
+        doi: "10.1519/JSC.0000000000002579",
+      },
+    },
     metrics: {
-      kons60: { torqueExt: { mean: 169, sd: 5 }, bwExt: { mean: 2.44, sd: 0.05 }, lsiExt: { mean: 100 }, torqueFlex: { mean: 95, sd: 2 }, bwFlex: { mean: 1.38, sd: 0.02 }, lsiFlex: { mean: 103 }, hq: { mean: 57, sd: 1 } },
+      // Risberg 2018, Table 2, handball, dominant leg (n=143 complete pairs).
+      // Use the same published dominant-leg reference for both measured legs,
+      // consistently with the female football reference above.
+      kons60: {
+        torqueExt: { mean: 166.3, sd: 24.4 }, bwExt: { mean: 2.42, sd: 0.32 },
+        torqueFlex: { mean: 95.4, sd: 14.1 }, bwFlex: { mean: 1.39, sd: 0.17 },
+        hq: { mean: 57.8, sd: 7.2 },
+      },
       kons180: { torqueExt: { mean: 110, sd: 7 }, bwExt: { mean: 1.70, sd: 0.08 }, torqueFlex: { mean: 40, sd: 7 }, bwFlex: { mean: 0.90, sd: 0.06 }, hq: { mean: 55, sd: 10 } },
       kons300: { torqueExt: { mean: 91, sd: 16 }, bwExt: { mean: 1.10, sd: 0.08 }, torqueFlex: { mean: 53, sd: 18 }, bwFlex: { mean: 0.50, sd: 0.06 }, hq: { mean: 61, sd: 5 } },
     },

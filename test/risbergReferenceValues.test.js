@@ -8,6 +8,7 @@ import {reportBarComparisons} from "../src/utils/reportBarComparisons.js";
 import {translate} from "../src/i18n/catalog.js";
 
 const refs = referenceValues["Naiset jalkapallo, elite"];
+const handball = referenceValues["Naiset käsipallo, elite"];
 const group = {
   right: {110: 149, 111: -83.8, 112: 149, 113: -83.8, 203: 149 / 64, 204: -83.8 / 64},
   left: {110: 145, 111: -92.5, 112: 145, 113: -92.5, 203: 145 / 64, 204: -92.5 / 64},
@@ -20,6 +21,39 @@ test("female elite football con60 uses Risberg Table 2 dominant-leg means and pa
   });
   assert.deepEqual(refs.metrics.kons300.torqueExt, {mean: 83, sd: 12});
   assert.deepEqual(refs.metrics.eks30.mixedRatio, {minimum: 100, maximum: 130});
+});
+
+test("female elite handball con60 uses original Risberg means, SDs and protocol-specific citation", () => {
+  assert.deepEqual(handball.metrics.kons60, {
+    torqueExt: {mean: 166.3, sd: 24.4}, bwExt: {mean: 2.42, sd: 0.32},
+    torqueFlex: {mean: 95.4, sd: 14.1}, bwFlex: {mean: 1.39, sd: 0.17}, hq: {mean: 57.8, sd: 7.2},
+  });
+  assert.deepEqual(handball.metrics.kons180.torqueExt, {mean: 110, sd: 7});
+  assert.deepEqual(handball.metrics.kons300.torqueFlex, {mean: 53, sd: 18});
+  const citation = reportReferenceSource(handball, undefined, ["kons60"]);
+  assert.match(citation, /Risberg.*n=143.*10\.1519\/JSC\.0000000000002579/);
+  assert.doesNotMatch(citation, /van Melick|n=293/);
+  assert.match(reportReferenceSource(handball, text => translate(text, "en"), ["kons60"]), /dominant-leg reference/);
+  for (const key of ["kons180", "kons300"]) {
+    const source = reportReferenceSource(handball, undefined, [key]);
+    assert.match(source, /van Melick.*10\.2519\/jospt\.2022\.10693/);
+    assert.doesNotMatch(source, /Risberg/);
+  }
+  const rows = reportRows("kons60", group, handball, "oikea");
+  const peaks = rows.filter(row => row.cells?.[0] === "Huippuvääntö (Nm)");
+  assert.equal(peaks[0].cells[5], "166.3 ± 24.4");
+  assert.equal(peaks[1].cells[5], "95.4 ± 14.1");
+  for (const row of peaks) {
+    assert.notEqual(row.referenceStatus, "fail");
+    assert.notEqual(row.involvedStatus, "fail");
+  }
+  const bars = reportBarComparisons("kons60", group, handball, "oikea");
+  const files = Object.entries(group).map(([legSide, analysis]) => ({legSide, rawObject: {programType: "kons 60", analysis}}));
+  for (const [muscle, start] of [["quadriceps", 0], ["hamstrings", 2]]) {
+    const screen = peakComparisons(files, handball, muscle);
+    assert.deepEqual(screen[0].reference, bars[start].reference);
+    assert.deepEqual(screen[1].reference, bars[start + 1].reference);
+  }
 });
 
 test("reported example no longer fails absolute torque reference, with identical norms for both legs", () => {
