@@ -90,7 +90,9 @@ Tietoja luetaan mittaustiedostosta, mutta niitä voi muuttaa analyysia varten. T
 
 Viitearvoja on lisätty miesten ja naisten jalkapalloon, poikien jalkapalloon, koripalloon, käsipalloon, miesten maantiepyöräilyyn sekä miesten ja naisten alppihiihtoon. Jalkapallossa on myös miesten non-elite-ryhmä. Lentopallovaihtoehto on valmistelussa eikä sisällä viitearvoja.
 
-Valikon aineistot rajautuvat sukupuolivalinnan mukaan: miesvalinta piilottaa naisten ja tyttöjen aineistot, naisvalinta miesten ja poikien aineistot. Valitun aineiston lähde näkyy valikon alla. Nykyiset lähteet sisältävät van Melick et al. (2022), Rannama et al. (2013) ja Alhammoud et al. (2019).
+Valikon aineistot rajautuvat sukupuolivalinnan mukaan: miesvalinta piilottaa naisten ja tyttöjen aineistot, naisvalinta miesten ja poikien aineistot. Valitun aineiston lähde näkyy valikon alla ja voi vaihtua mittausohjelman mukaan. Nykyiset lähteet sisältävät van Melick et al. (2022), Risberg et al. (2018), Liu et al. (2025), Rannama et al. (2013) ja Alhammoud et al. (2019).
+
+Naisten elite-jalkapallon kons60-viitteet tulevat Risberg et al. (2018) -tutkimuksen taulukosta 2 (n=196): etureisi **147,7 ± 23,5 Nm** ja **2,33 ± 0,35 Nm/kg**, takareisi **87,4 ± 13,6 Nm** ja **1,38 ± 0,21 Nm/kg**, HQ-suhde **59,6 ± 7,5 %**. Molempia jalkoja verrataan samaan tutkimuksen dominoivan jalan viitteeseen. Sovellus ei päättele dominanssia oireisen jalan tai vasen/oikea-valinnan perusteella. Hajonnat ovat alkuperäistutkimuksen julkaistuja tutkittavien välisiä SD-arvoja; niitä ei ole johdettu keskipainosta. DOI: **10.1519/JSC.0000000000002579**. Muiden nopeuksien viitteet säilyvät van Melickin katsauksesta, ja raportin lähdemerkinnät valitaan sivulla esitettävän mittausohjelman mukaan.
 
 Viitearvot ovat ryhmä-, nopeus- ja muuttujakohtaisia. Esimerkiksi 300°/s-aineiston arvoja ei siirretä automaattisesti 240°/s-mittaukseen. Kaikille muuttujille tai ohjelmille ei ole arvoja; puuttuva viite näytetään viivana **–**. **Ei käytössä / None** poistaa viiteaineistoon perustuvan vertailun, mutta puoliero voidaan edelleen laskea.
 

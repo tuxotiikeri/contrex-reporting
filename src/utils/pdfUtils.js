@@ -434,6 +434,7 @@ export async function generatePDF() {
     : comparison.involvedSide === "right" ? "oikea" : null;
 
   const reportTests = TESTS.filter(({key}) => Boolean(groups[key]));
+  const referencePageKeys = [reportTests.map(test => test.key)];
   if (reportTests.length) {
   addPatientInfo(pdf, patientInfo, files);
   y = 55;
@@ -532,6 +533,7 @@ export async function generatePDF() {
     }
 
     pdf.addPage();
+    referencePageKeys[pdf.getNumberOfPages() - 1] = [testDef.key];
     addPatientInfo(pdf, patientInfo, files, testDef);
 
     pngs.slice(0, 2).forEach(({dataUrl, width, height}, index) => {
@@ -562,9 +564,10 @@ export async function generatePDF() {
     }),
     svgToPng,
   });
-  const source = reportReferenceSource(referenceSet, text => reportText(pdf, text));
-  if (source) {
+  if (referenceSet) {
     for (let page = 1; page <= dynamicPageCount; page++) {
+      const source = reportReferenceSource(referenceSet, text => reportText(pdf, text), referencePageKeys[page - 1] ?? reportTests.map(test => test.key));
+      if (!source) continue;
       pdf.setPage(page);
       pdf.setFont("Helvetica", "normal");
       pdf.setFontSize(6.5);

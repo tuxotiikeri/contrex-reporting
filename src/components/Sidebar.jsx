@@ -26,7 +26,7 @@ import {ListOfFileHandlerRepetitions} from "./ListOfFileHandlerRepetitions.jsx";
 import {IconButton} from "./ui/IconButton.jsx";
 import {Checkbox} from "./ui/Checkbox.jsx";
 import {referenceValueOptions, referenceValues} from "../data/referenceValues.js";
-import {normalizeSubjectSex, isometricProtocol} from "../utils/measurementMetadata.js";
+import {normalizeSubjectSex, isometricProtocol, measurementProtocolKey} from "../utils/measurementMetadata.js";
 
 export function Sidebar() {
   const {activeFiles} = useGlobalContext();
@@ -202,7 +202,8 @@ export function Sidebar() {
             </label>
             <Show when={patientProfile().referenceValues !== "Ei käytössä"}>
               <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
-                {t(referenceValues[patientProfile().referenceValues]?.source)}
+                {t(referenceValues[patientProfile().referenceValues]?.protocolSources?.[measurementProtocolKey(activeProgram())]?.source
+                  ?? referenceValues[patientProfile().referenceValues]?.source)}
               </p>
             </Show>
           </div>

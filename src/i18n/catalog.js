@@ -1,5 +1,6 @@
 // Finnish display text is the key. Stored values and CTM metadata are never translated.
 export const english = {
+  "Risberg et al. (2018), kons60, n=196; dominoivan jalan viite.": "Risberg et al. (2018), con60, n=196; dominant-leg reference.",
   "Mittaus": "Measurement", "Kyllä": "Yes", "Ei": "No",
   "Isometrinen voima": "Isometric strength",
   "isometrinen": "isometric",

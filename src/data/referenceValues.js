@@ -72,8 +72,23 @@ export const referenceValues = {
   "Naiset jalkapallo, elite": {
     label: "Naiset jalkapallo, elite",
     source: "van Melick et al. (2022), scoping review. Elite female young adults, n=213.",
+    protocolSources: {
+      kons60: {
+        source: "Risberg et al. (2018), kons60, n=196; dominoivan jalan viite.",
+        doi: "10.1519/JSC.0000000000002579",
+      },
+    },
     metrics: {
-      kons60: { torqueExt: { mean: 149, sd: 3 }, bwExt: { mean: 2.32, sd: 0.36 }, lsiExt: { mean: 101 }, torqueFlex: { mean: 87, sd: 1 }, bwFlex: { mean: 1.36, sd: 0.21 }, lsiFlex: { mean: 103 }, hq: { mean: 59, sd: 1 } },
+      // Risberg 2018, Table 2, football, dominant leg (n=196 complete pairs).
+      // A common dominant-leg benchmark is used for both measured legs:
+      // anatomical left/right or symptomatic status does not imply dominance.
+      // Published participant SDs are used directly, not the scoping review's
+      // study-level dispersion and not an estimate derived from body mass.
+      kons60: {
+        torqueExt: { mean: 147.7, sd: 23.5 }, bwExt: { mean: 2.33, sd: 0.35 },
+        torqueFlex: { mean: 87.4, sd: 13.6 }, bwFlex: { mean: 1.38, sd: 0.21 },
+        hq: { mean: 59.6, sd: 7.5 },
+      },
       kons300: { torqueExt: { mean: 83, sd: 12 }, torqueFlex: { mean: 60, sd: 9 }, hq: { mean: 72, sd: 11 } },
       eks30: { mixedRatio: { minimum: 100, maximum: 130 } },
     },

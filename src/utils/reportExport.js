@@ -20,8 +20,11 @@ export function reportFilename(patient, rawDate) {
   return `${prefix || "contrex-reporting"}_isokineettinen_${date}.pdf`;
 }
 
-export function reportReferenceSource(referenceSet, translate = value => value) {
+export function reportReferenceSource(referenceSet, translate = value => value, testKeys = Object.keys(referenceSet?.metrics ?? {})) {
   if (!referenceSet?.source || !Object.keys(referenceSet.metrics ?? {}).length) return null;
-  const source = translate(referenceSet.source);
-  return referenceSet.doi ? `${source} DOI: ${referenceSet.doi}` : source;
+  const sources = testKeys.filter(key => referenceSet.metrics[key]).map(key => referenceSet.protocolSources?.[key] ?? referenceSet);
+  return [...new Set(sources.map(reference => {
+    const source = translate(reference.source);
+    return reference.doi ? `${source} DOI: ${reference.doi}` : source;
+  }))].join(" | ") || null;
 }

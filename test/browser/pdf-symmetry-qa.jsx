@@ -58,11 +58,12 @@ function makeFile(key, programType, name, side) {
   };
 }
 
-const files = protocols.flatMap(([key, programType, name]) => [
+const qaOptions = new URLSearchParams(location.search);
+const files = protocols.filter(([key]) => !qaOptions.has("protocol") || qaOptions.get("protocol") === key).flatMap(([key, programType, name]) => [
   makeFile(key, programType, name, "left"),
   makeFile(key, programType, name, "right"),
 ]);
-setPatientProfile({involvedSide: "oikea", weight: 75, referenceValues: "Ei käytössä"});
+setPatientProfile({involvedSide: "oikea", weight: 75, referenceValues: qaOptions.get("reference") || "Ei käytössä"});
 createEffect(() => setParsedFileData(files));
 const [status, setStatus] = createSignal("");
 
